@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GeoSecure Chennai — 72H Disaster AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --safe:     #22c55e;
+    --watch:    #f59e0b;
+    --high:     #f97316;
+    --critical: #ef4444;
+    --bg:       #020617;
+    --panel:    #0f172a;
+    --panel2:   #1e293b;
+    --border:   rgba(255,255,255,0.08);
+    --text:     #f1f5f9;
+    --muted:    #94a3b8;
+    --accent:   #3b82f6;
+    --glow:     rgba(59,130,246,0.15);
+  }
+  html { font-size: 18px; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+    font-size: 1rem;
+  }
+
+  /* ─── ANIMATED BACKGROUND ─── */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .bg-glow {
+    position: fixed; z-index: 0;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    transition: all 2s ease;
+  }
+  .bg-glow-1 { width: 600px; height: 600px; top: -200px; left: -200px; background: rgba(59,130,246,0.06); }
+  .bg-glow-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: rgba(16,185,129,0.05); }
+
+  /* ─── LAYOUT ─── */
+  .container { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+
+  /* ─── HEADER ─── */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,15,30,0.95);
+    backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; max-width: 1400px; margin: 0 auto;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub  { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 1px; }
+
+  .header-controls {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .datetime-input {
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 16px; border-radius: 8px;
+    font-family: 'Space Mono', monospace; font-size: 0.95rem;
+    outline: none; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .datetime-input:focus { border-color: var(--accent); }
+  .datetime-input::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+
+  .btn {
+    padding: 10px 24px; border-radius: 10px; border: none;
+    font-family: 'Syne', sans-serif; font-weight: 700;
+    font-size: 0.95rem; cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-sim  { background: var(--accent); color: white; }
+  .btn-sim:hover { background: #2563eb; transform: translateY(-1px); }
+  .btn-live { background: var(--safe); color: white; }
+  .btn-live:hover { background: #059669; transform: translateY(-1px); }
+  .btn-active { box-shadow: 0 0 0 2px rgba(255,255,255,0.3), 0 0 20px rgba(59,130,246,0.4); }
+  .btn-logout { background: rgba(239, 68, 68, 0.08); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 20px; font-weight: 700; transition: .2s; }
+  .btn-logout:hover { background: #ef4444; color: white; border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); transform: translateY(-1px); }
+
+  /* ─── ALERT BANNER ─── */
+  .alert-banner {
+    margin: 24px 24px 0;
+    max-width: 1400px;
+    margin-left: auto; margin-right: auto;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.6s ease;
+    position: relative;
+    padding: 28px 32px;
+  }
+  .alert-banner::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--alert-color, var(--safe));
+    transition: background 0.6s ease;
+  }
+  .alert-top {
+    display: flex; align-items: flex-start; gap: 20px;
+  }
+  .alert-icon-wrap {
+    width: 60px; height: 60px; border-radius: 14px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .alert-content { flex: 1; }
+  .alert-level {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+  .alert-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem; font-weight: 800; line-height: 1.1;
+    margin-bottom: 8px;
+    transition: color 0.6s ease;
+  }
+  .alert-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px; color: var(--muted);
+  }
+  .alert-right { text-align: right; flex-shrink: 0; }
+  .confidence-ring {
+    width: 80px; height: 80px;
+    position: relative;
+  }
+  .confidence-ring svg { transform: rotate(-90deg); }
+  .confidence-ring .ring-bg  { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 6; }
+  .confidence-ring .ring-val { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dasharray 1s ease, stroke 0.6s ease; }
+  .confidence-label {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px; font-weight: 700; line-height: 1.1;
+  }
+  .confidence-label span:last-child { font-size: 9px; color: var(--muted); }
+
+  /* Metrics row */
+  .metrics-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-top: 20px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .metric-icon { font-size: 20px; }
+  .metric-val  { font-size: 20px; font-weight: 800; }
+  .metric-lbl  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* ─── MAIN GRID ─── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 32px;
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ─── PANELS ─── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .panel-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-title::before {
+    content: ''; display: block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Trend Chart */
+  .chart-container { position: relative; height: 200px; }
+
+  /* Probability bars */
+  .prob-bars { display: flex; flex-direction: column; gap: 10px; }
+  .prob-row { display: flex; align-items: center; gap: 10px; }
+  .prob-label { font-size: 12px; font-family: 'Space Mono', monospace; width: 70px; flex-shrink: 0; }
+  .prob-bar-wrap { flex: 1; background: rgba(255,255,255,0.06); border-radius: 4px; height: 8px; overflow: hidden; }
+  .prob-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .prob-pct { font-size: 12px; font-family: 'Space Mono', monospace; width: 40px; text-align: right; color: var(--muted); }
+
+  /* Action steps */
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    font-size: 1rem; line-height: 1.5;
+  }
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent);
+    background: rgba(59,130,246,0.1);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+
+  /* Seismic */
+  .seismic-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+  }
+  .seismic-mag {
+    font-size: 32px; font-weight: 800; line-height: 1;
+    font-family: 'Space Mono', monospace;
+  }
+  .seismic-info { flex: 1; }
+  .seismic-label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .seismic-place { font-size: 13px; font-weight: 600; }
+
+  /* Historical risk timeline */
+  .history-chart-container { height: 100px; }
+
+  /* Alert history */
+  .alert-log { display: flex; flex-direction: column; gap: 8px; }
+  .alert-log-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .log-time { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px; margin-left: auto; }
+
+  /* Status bar */
+  .status-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 24px;
+    background: rgba(10,15,30,0.9);
+    border-top: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    max-width: 100%;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--safe); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity 0.5s ease;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+  .loader-ring {
+    width: 60px; height: 60px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--muted); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 300;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px;
+    font-size: 13px; display: flex; align-items: center; gap: 10px;
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.4s ease;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .alert-title { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader-ring"></div>
+  <div class="loading-text">Initializing GeoSecure AI...</div>
+</div>
+
+<!-- BG -->
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1" id="bgGlow1"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🌊</div>
+      <div>
+        <div class="logo-text">GeoSecure Chennai</div>
+        <div class="logo-sub">72-HOUR DISASTER PREDICTION AI</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <input type="datetime-local" id="dateInput" class="datetime-input" placeholder="dd-mm-yyyy --:--"/>
+      <button class="btn btn-sim" id="btnSim" onclick="runSimulation()">Simulate Date</button>
+      <button class="btn btn-live" id="btnLive" onclick="runLive()">Live Mode</button>
+      <a href="/user/logout" class="btn btn-logout" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">Sign Out</a>
+    </div>
+  </div>
+</header>
+
+<!-- ALERT BANNER -->
+<div class="container" style="padding-top:20px;">
+  <div class="alert-banner" id="alertBanner">
+    <div class="alert-top">
+      <div class="alert-icon-wrap" id="alertIcon">⏳</div>
+      <div class="alert-content">
+        <div class="alert-level" id="alertLevel">LOADING...</div>
+        <div class="alert-title" id="alertTitle">Connecting to data pipeline...</div>
+        <div class="alert-meta" id="alertMeta">Mode: Live · 72h horizon · Updating...</div>
+      </div>
+      <div class="alert-right">
+        <div class="confidence-ring">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle class="ring-bg"  cx="40" cy="40" r="32"/>
+            <circle class="ring-val" cx="40" cy="40" r="32" id="confRing"
+              stroke-dasharray="0 201" stroke="#3b82f6"/>
+          </svg>
+          <div class="confidence-label">
+            <span id="confPct">--%</span>
+            <span>CONF</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-row" id="metricsRow">
+      <div class="metric"><div class="metric-icon">🌧️</div><div><div class="metric-val" id="mRain">--</div><div class="metric-lbl">Rain (mm/h)</div></div></div>
+      <div class="metric"><div class="metric-icon">💨</div><div><div class="metric-val" id="mWind">--</div><div class="metric-lbl">Wind (km/h)</div></div></div>
+      <div class="metric"><div class="metric-icon">🌡️</div><div><div class="metric-val" id="mTemp">--</div><div class="metric-lbl">Temp (°C)</div></div></div>
+      <div class="metric"><div class="metric-icon">📊</div><div><div class="metric-val" id="mPres">--</div><div class="metric-lbl">Pressure (hPa)</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+
+    <!-- 24h Trend -->
+    <div class="panel">
+      <div class="panel-title">24-Hour Rainfall Trend</div>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Risk Probability -->
+    <div class="panel">
+      <div class="panel-title">72-Hour Risk Probability Breakdown</div>
+      <div class="prob-bars" id="probBars">
+        <div class="prob-row"><div class="prob-label">SAFE</div><div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:0%;background:var(--safe)"></div></div><div class="prob-pct">--%</div></div>
+        <div class="prob-row"><div class="prob-label">WATCH</div><div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:0%;background:var(--watch)"></div></div><div class="prob-pct">--%</div></div>
+        <div class="prob-row"><div class="prob-label">HIGH RISK</div><div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:0%;background:var(--high)"></div></div><div class="prob-pct">--%</div></div>
+        <div class="prob-row"><div class="prob-label">CRITICAL</div><div class="prob-bar-wrap"><div class="prob-bar-fill" style="width:0%;background:var(--critical)"></div></div><div class="prob-pct">--%</div></div>
+      </div>
+    </div>
+
+    <!-- Historical Risk -->
+    <div class="panel">
+      <div class="panel-title">Historical Risk — Past Year</div>
+      <div class="history-chart-container">
+        <canvas id="histChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div style="display:flex; flex-direction:column; gap:16px;">
+
+    <!-- Action Steps -->
+    <div class="panel">
+      <div class="panel-title">Recommended Actions</div>
+      <div class="steps" id="actionSteps">
+        <div class="step"><div class="step-num">01</div><div>Loading recommendations...</div></div>
+      </div>
+    </div>
+
+    <!-- Seismic -->
+    <div class="panel">
+      <div class="panel-title">Seismic Activity (500km radius)</div>
+      <div class="seismic-card">
+        <div>
+          <div class="seismic-label">Latest Magnitude</div>
+          <div class="seismic-mag" id="seismicMag">--</div>
+        </div>
+        <div class="seismic-info">
+          <div class="seismic-label">Location</div>
+          <div class="seismic-place" id="seismicPlace">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Reasoning (XAI) -->
+    <div class="panel">
+      <div class="panel-title">Risk Reasoning (XAI)</div>
+      <div id="xaiList" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:13px;color:var(--muted);">Awaiting prediction...</div>
+      </div>
+    </div>
+
+    <!-- Alert Log -->
+    <div class="panel">
+      <div class="panel-title">Alert History</div>
+      <div class="alert-log" id="alertLog">
+        <div class="alert-log-item"><div class="log-dot" style="background:var(--watch)"></div>2 days ago — Heavy rain watch (Simulated)<div class="log-time">48h ago</div></div>
+        <div class="alert-log-item"><div class="log-dot" style="background:var(--muted)"></div>5 days ago — Wind advisory (Simulated)<div class="log-time">120h ago</div></div>
+      </div>
+    </div>
+
+    <!-- Download Emergency Plan -->
+    <div class="panel" style="border:1px solid rgba(239,68,68,0.3); background: linear-gradient(135deg, rgba(239,68,68,0.06), var(--panel));">
+      <div class="panel-title" style="color:#f87171;">Offline Emergency Plan</div>
+      <div style="font-size:13px; color:#94a3b8; margin-bottom:14px; line-height:1.6;">
+        Download the citizen action guide for each alert level — what to do, emergency numbers, go-bag checklist, and flood zone map. Works without internet.
+      </div>
+      <button onclick="downloadPlan()" style="
+        width:100%; padding:12px; border:none; border-radius:10px;
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color:white; font-family:'Syne',sans-serif; font-weight:700;
+        font-size:14px; cursor:pointer; letter-spacing:0.3px;
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        transition: all 0.2s; box-shadow: 0 4px 20px rgba(220,38,38,0.3);"
+        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 28px rgba(220,38,38,0.4)'"
+        onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(220,38,38,0.3)'">
+        <span style="font-size:18px;">📄</span>
+        Download Emergency Action Plan (PDF)
+      </button>
+      <div style="font-size:10px; color:var(--muted); text-align:center; margin-top:8px; font-family:'Space Mono',monospace;">
+        6 pages · English · Print & keep at home
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">Connecting...</span>
+  <span style="margin-left:auto;">Data: Open-Meteo + USGS · Model: CNN-BiLSTM · Horizon: 72h</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toastMsg">✅ Updated</span>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const API = 'http://localhost:5000/api';
+let currentMode = 'live';
+let trendChart, histChart;
+
+const RISK_COLORS = {
+  0: { color: '#10b981', bg: 'rgba(16,185,129,0.08)', bgGlow: 'rgba(16,185,129,0.06)', title: 'Normal: Atmospheric Conditions Stable.' },
+  1: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  bgGlow: 'rgba(245,158,11,0.06)',  title: 'WATCH: Moderate Weather Volatility.' },
+  2: { color: '#f97316', bg: 'rgba(249,115,22,0.08)',  bgGlow: 'rgba(249,115,22,0.06)',  title: 'ALERT: Multi-Hazard Conditions Detected.' },
+  3: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   bgGlow: 'rgba(239,68,68,0.06)',   title: 'FLOOD ALERT: Heavy Rainfall Predicted!' },
+};
+
+const RISK_ICONS = { 0:'✅', 1:'⚠️', 2:'🌊', 3:'🚨' };
+const RISK_STEPS = {
+  0: ['No immediate action required.', 'Review emergency contacts.', 'Check drainage around your area.'],
+  1: ['Monitor this app every 3 hours.', 'Clear neighborhood drains.', 'Prepare emergency kit.', 'Charge power banks.'],
+  2: ['Move valuables to upper floors.', 'Secure outdoor objects.', 'Avoid low-lying areas.', 'Check first-aid kits.', 'Alert neighbors.'],
+  3: ['EVACUATE low-lying zones immediately.', 'Turn off gas and electricity.', 'Call 1916 — Tamil Nadu Disaster Helpline.', 'Move to emergency shelters.', 'Do not cross flooded roads.'],
+};
+
+// ─── DEMO DATA (when API not available) ───────────────────────────────────────
+function getDemoData(mode, date) {
+  // Simulate historical flood events
+  if (mode === 'simulation' && date) {
+    const d = new Date(date);
+    const isFlood2015 = d.getFullYear() === 2015 && d.getMonth() === 11;  // Dec 2015
+    const isMonsoon   = [5,6,7,8,9,10,11].includes(d.getMonth());
+
+    if (isFlood2015) return buildResponse(3, 91.2, [84.85, 19, 28.3, 1009.3], generateTrend(3));
+    if (isMonsoon)   return buildResponse(2, 73.4, [8.4, 22, 29.1, 1006.2], generateTrend(2));
+    return buildResponse(1, 62.1, [2.3, 14, 29.8, 1007.3], generateTrend(1));
+  }
+  return buildResponse(0, 95.3, [0.39, 5, 31.2, 1010.6], generateTrend(0));
+}
+
+function buildResponse(risk, conf, [rain, wind, temp, pres], trend) {
+  const probMap = [[85,10,3,2],[5,70,20,5],[3,8,75,14],[1,2,8,89]];
+  const p = probMap[risk];
+  return {
+    risk_class: risk, confidence: conf,
+    probabilities: { SAFE: p[0], WATCH: p[1], HIGH_RISK: p[2], CRITICAL: p[3] },
+    alert: { icon: RISK_ICONS[risk], level: ['SAFE','WATCH','HIGH RISK','CRITICAL'][risk],
+             color: RISK_COLORS[risk].color, title: RISK_COLORS[risk].title },
+    seismic: { mag: risk === 3 ? 4.5 : 0.0, place: risk === 3 ? '32 km SW of Jaggayyapeta, India' : 'Seismic Zone Stable' },
+    current: { rain, wind, temp, pressure: pres },
+    trend: trend,
+    timestamp: new Date().toISOString(), mode: currentMode,
+  };
+}
+
+function generateTrend(risk) {
+  const bases = [0.1, 2.5, 8.0, 80.0];
+  const base = bases[risk];
+  return Array.from({length: 24}, (_, i) => {
+    const wave = Math.sin(i / 3) * base * 0.3;
+    return Math.max(0, base * (0.5 + Math.random() * 0.8) + wave);
+  });
+}
+
+// ─── FETCH DATA ───────────────────────────────────────────────────────────────
+async function fetchPrediction(mode = 'live', date = null) {
+  try {
+    const url = date ? `${API}/predict?mode=simulation&date=${date}` : `${API}/predict?mode=live`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error('API error');
+    return await r.json();
+  } catch {
+    // Use demo data when API unavailable
+    return getDemoData(mode, date);
+  }
+}
+
+async function fetchHistory() {
+  try {
+    const r = await fetch(`${API}/history`, { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error();
+    return await r.json();
+  } catch {
+    return generateHistoryDemo();
+  }
+}
+
+function generateHistoryDemo() {
+  const data = [];
+  const now = new Date();
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const month = d.getMonth();
+    const isMonsoon = [9,10,11].includes(month);
+    const isFlood = d.getFullYear() === 2015 && month === 11;
+    let risk = 0;
+    if (isFlood) risk = 3;
+    else if (isMonsoon && Math.random() < 0.3) risk = 2;
+    else if (isMonsoon && Math.random() < 0.5) risk = 1;
+    else if (Math.random() < 0.05) risk = 1;
+    data.push({ date: d.toISOString().split('T')[0], risk });
+  }
+  return data;
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function updateAlert(data) {
+  const r = data.risk_class;
+  const rc = RISK_COLORS[r];
+
+  document.getElementById('alertBanner').style.setProperty('--alert-color', rc.color);
+  document.getElementById('alertBanner').style.background =
+    `linear-gradient(135deg, ${rc.bg}, var(--panel))`;
+
+  document.getElementById('bgGlow1').style.background = rc.bgGlow;
+
+  document.getElementById('alertIcon').textContent  = RISK_ICONS[r];
+  document.getElementById('alertLevel').textContent = `${data.alert?.level || ['SAFE','WATCH','HIGH RISK','CRITICAL'][r]} · 72h Forecast`;
+  document.getElementById('alertLevel').style.color = rc.color;
+  document.getElementById('alertTitle').textContent = data.alert?.title || rc.title;
+  document.getElementById('alertTitle').style.color = rc.color;
+  document.getElementById('alertMeta').textContent  =
+    `Mode: ${currentMode === 'live' ? 'Live' : 'Simulation'} · ${new Date(data.timestamp).toLocaleTimeString()} IST`;
+
+  // Confidence ring
+  const conf = data.confidence || 0;
+  const circumference = 2 * Math.PI * 32;
+  const dash = (conf / 100) * circumference;
+  document.getElementById('confRing').setAttribute('stroke-dasharray', `${dash} ${circumference}`);
+  document.getElementById('confRing').setAttribute('stroke', rc.color);
+  document.getElementById('confPct').textContent = `${conf.toFixed(0)}%`;
+  document.getElementById('confPct').style.color = rc.color;
+
+  // Metrics
+  const cur = data.current || {};
+  document.getElementById('mRain').textContent = `${(cur.rain ?? 0).toFixed(2)}`;
+  document.getElementById('mWind').textContent = `${(cur.wind ?? 0).toFixed(0)}`;
+  document.getElementById('mTemp').textContent = `${(cur.temp ?? 0).toFixed(1)}°`;
+  document.getElementById('mPres').textContent = `${(cur.pressure ?? 0).toFixed(1)}`;
+}
+
+function updateProbBars(data) {
+  const probs = data.probabilities || {};
+  const vals = [probs.SAFE, probs.WATCH, probs['HIGH RISK'], probs.CRITICAL];
+  const colors = ['var(--safe)','var(--watch)','var(--high)','var(--critical)'];
+  const rows = document.querySelectorAll('.prob-row');
+  rows.forEach((row, i) => {
+    const v = vals[i] ?? 0;
+    row.querySelector('.prob-bar-fill').style.width = `${v}%`;
+    row.querySelector('.prob-bar-fill').style.background = colors[i];
+    row.querySelector('.prob-pct').textContent = `${v.toFixed(1)}%`;
+  });
+}
+
+function updateSeismic(data) {
+  const s = data.seismic || {};
+  const mag = s.mag || 0;
+  document.getElementById('seismicMag').textContent = mag.toFixed(1);
+  document.getElementById('seismicPlace').textContent = s.place || 'Stable';
+  const magEl = document.getElementById('seismicMag');
+  magEl.style.color = mag > 5 ? 'var(--critical)' : mag > 3.5 ? 'var(--high)' : mag > 2 ? 'var(--watch)' : 'var(--safe)';
+}
+
+function updateXAI(data) {
+  const cur = data.current || {};
+  const r = data.risk_class;
+  const rc = RISK_COLORS[r];
+  const items = [
+    { label: 'Rainfall', val: `${(cur.rain||0).toFixed(2)} mm/h`, key: cur.rain > 10 ? 'high' : cur.rain > 2 ? 'mod' : 'low' },
+    { label: 'Wind Speed', val: `${(cur.wind||0).toFixed(0)} km/h`, key: cur.wind > 50 ? 'high' : cur.wind > 30 ? 'mod' : 'low' },
+    { label: 'Pressure', val: `${(cur.pressure||0).toFixed(1)} hPa`, key: cur.pressure < 995 ? 'high' : cur.pressure < 1005 ? 'mod' : 'low' },
+    { label: 'Seismic', val: `Mag ${(data.seismic?.mag||0).toFixed(1)}`, key: (data.seismic?.mag||0) > 5 ? 'high' : (data.seismic?.mag||0) > 3.5 ? 'mod' : 'low' },
+  ];
+  const dotCol = { high: 'var(--critical)', mod: 'var(--watch)', low: 'var(--safe)' };
+  const tag    = { high: '▲ Elevated', mod: '~ Moderate', low: '✓ Normal' };
+
+  document.getElementById('xaiList').innerHTML = items.map(it => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${dotCol[it.key]};flex-shrink:0;"></div>
+      <div style="flex:1;font-size:13px;">${it.label}: <b>${it.val}</b></div>
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:${dotCol[it.key]};">${tag[it.key]}</div>
+    </div>
+  `).join('');
+
+  // Historical comparison blurb
+  const blurbs = [
+    'Conditions within normal seasonal baseline.',
+    'Moderate rainfall trend similar to localized 2021 monsoon spells.',
+    'Multi-hazard conditions approaching 2017 northeast monsoon levels.',
+    'Rainfall intensity resembles the peak phase of the 2015 Chennai Floods.',
+  ];
+  document.getElementById('xaiList').innerHTML += `
+    <div style="padding:12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;margin-top:4px;">
+      <div style="font-size:10px;color:var(--accent);font-family:'Space Mono',monospace;font-weight:700;margin-bottom:4px;letter-spacing:1px;">HISTORICAL COMPARISON</div>
+      <div style="font-size:12px;color:#94a3b8;">${blurbs[r]}</div>
+    </div>`;
+}
+
+function updateActions(data) {
+  const r = data.risk_class;
+  const steps = RISK_STEPS[r] || RISK_STEPS[0];
+  document.getElementById('actionSteps').innerHTML = steps.map((s, i) => `
+    <div class="step">
+      <div class="step-num">${String(i+1).padStart(2,'0')}</div>
+      <div>${s}</div>
+    </div>
+  `).join('');
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function initTrendChart() {
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array.from({length:24}, (_,i) => `${i}:00`),
+      datasets: [{
+        label: 'Rainfall (mm/h)',
+        data: Array(24).fill(0),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#3b82f6',
+        fill: true,
+        tension: 0.4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } } }
+      }
+    }
+  });
+}
+
+function updateTrendChart(trend, riskClass) {
+  const colors = ['#10b981','#f59e0b','#f97316','#ef4444'];
+  const color = colors[riskClass] || '#3b82f6';
+  trendChart.data.datasets[0].data = trend || Array(24).fill(0);
+  trendChart.data.datasets[0].borderColor = color;
+  trendChart.data.datasets[0].backgroundColor = color.replace(')', ',0.08)').replace('rgb','rgba');
+  trendChart.update('active');
+}
+
+function initHistChart() {
+  const ctx = document.getElementById('histChart').getContext('2d');
+  histChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: [],
+        borderWidth: 0,
+        barThickness: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: {
+          label: (ctx) => ['SAFE','WATCH','HIGH RISK','CRITICAL'][ctx.raw] || 'SAFE'
+        }
+      }},
+      scales: {
+        x: { display: false },
+        y: { display: false, min: 0, max: 3 }
+      }
+    }
+  });
+}
+
+function updateHistChart(history) {
+  const riskColors = ['#10b981','#f59e0b','#f97316','#ef4444'];
+  histChart.data.labels = history.map(d => d.date);
+  histChart.data.datasets[0].data = history.map(d => d.risk);
+  histChart.data.datasets[0].backgroundColor = history.map(d => riskColors[d.risk] + 'cc');
+  histChart.update();
+}
+
+// ─── MAIN UPDATE ──────────────────────────────────────────────────────────────
+async function update(mode = 'live', date = null) {
+  showStatus('Fetching data...');
+  try {
+    const [data, history] = await Promise.all([
+      fetchPrediction(mode, date),
+      fetchHistory()
+    ]);
+
+    updateAlert(data);
+    updateProbBars(data);
+    updateSeismic(data);
+    updateXAI(data);
+    updateActions(data);
+    updateTrendChart(data.trend, data.risk_class);
+    updateHistChart(history);
+
+    // Log to alert history if high risk
+    if (data.risk_class >= 2 && mode === 'simulation') {
+      addAlertLog(data.risk_class, date);
+    }
+
+    showStatus(`✅ Updated ${new Date().toLocaleTimeString()} — Horizon: 72h · ${mode === 'live' ? 'Live Mode' : 'Simulation'}`);
+    showToast(`${RISK_ICONS[data.risk_class]} ${['SAFE','WATCH','HIGH RISK','CRITICAL'][data.risk_class]} — ${data.confidence?.toFixed(1)}% confidence`);
+
+  } catch(e) {
+    showStatus(`❌ Error: ${e.message}`);
+  } finally {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+}
+
+function addAlertLog(risk, date) {
+  const log = document.getElementById('alertLog');
+  const colors = ['var(--safe)','var(--watch)','var(--high)','var(--critical)'];
+  const labels = ['Safe','Watch','High Risk','CRITICAL FLOOD'];
+  const item = document.createElement('div');
+  item.className = 'alert-log-item';
+  item.innerHTML = `
+    <div class="log-dot" style="background:${colors[risk]}"></div>
+    <span>${date ? new Date(date).toLocaleDateString('en-IN') : 'Now'} — ${labels[risk]} (Simulated)</span>
+    <div class="log-time">just now</div>
+  `;
+  log.prepend(item);
+}
+
+// ─── CONTROLS ─────────────────────────────────────────────────────────────────
+function runSimulation() {
+  const val = document.getElementById('dateInput').value;
+  if (!val) { showToast('⚠️ Please pick a date first'); return; }
+  currentMode = 'simulation';
+  document.getElementById('btnSim').classList.add('btn-active');
+  document.getElementById('btnLive').classList.remove('btn-active');
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  update('simulation', val);
+}
+
+function runLive() {
+  currentMode = 'live';
+  document.getElementById('btnLive').classList.add('btn-active');
+  document.getElementById('btnSim').classList.remove('btn-active');
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  update('live');
+}
+
+function showStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function downloadPlan() {
+  // Flask route at /Chennai_Citizen_Emergency_Action_Plan.pdf serves the file
+  const link = document.createElement('a');
+  link.href = '/Chennai_Citizen_Emergency_Action_Plan.pdf';
+  link.download = 'Chennai_Citizen_Emergency_Action_Plan.pdf';
+  link.click();
+  showToast('📄 Downloading Emergency Action Plan...');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Set the simulate date picker: default to 2015 Chennai Flood (good demo date, guaranteed in CSV)
+  const inp = document.getElementById('dateInput');
+  if (inp) {
+    // Cap max to yesterday (CSV has no future/2026 data)
+    const yesterday = new Date(Date.now() - 86400000);
+    const pad = n => String(n).padStart(2,'0');
+    const maxVal = `${yesterday.getFullYear()}-${pad(yesterday.getMonth()+1)}-${pad(yesterday.getDate())}T23:59`;
+    inp.max = maxVal;
+    // Default to Dec 1 2015 (peak of Chennai floods — interesting demo)
+    if (!inp.value) inp.value = '2015-12-01T06:00';
+  }
+  initTrendChart();
+  initHistChart();
+  update('live');
+  // Auto-refresh every 5 min in live mode
+  setInterval(() => { if (currentMode === 'live') update('live'); }, 300_000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoSecure — Recovery Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060c18;--surface:#0d1526;--surface2:#0a1120;--border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);--blue:#3b82f6;--teal:#14b8a6;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a855f7;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --font:"DM Sans",sans-serif;--head:"Syne",sans-serif;
+  --nav-h:72px;
+}
+html{font-size:18px}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:1rem;line-height:1.6}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);
+  background-size:60px 60px}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(6,12,24,0.96);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;height:var(--nav-h);gap:8px;
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);margin-right:20px}
+.brand-icon{
+  width:36px;height:36px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:17px;box-shadow:0 0 16px rgba(59,130,246,0.35);
+}
+.brand-name{font-family:var(--head);font-size:1.05rem;font-weight:800}
+.brand-name span{color:#3b82f6}
+.brand-sub{font-size:0.68rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.nav-tab{
+  padding:10px 22px;border-radius:12px;border:none;background:transparent;
+  color:var(--muted);font-family:var(--font);font-size:1.05rem;font-weight:600;
+  cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.nav-tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav-tab.active{color:#93c5fd;background:rgba(59,130,246,0.12);font-weight:600}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.live-pill{
+  display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  font-size:0.7rem;font-weight:600;color:var(--green);
+  background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);
+}
+.live-pill span{width:5px;height:5px;border-radius:50%;background:var(--green);animation:livepulse 1.5s infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.nav-link{
+  padding:10px 20px;border-radius:10px;font-size:1rem;font-weight:700;
+  background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);
+  color:#fca5a5;text-decoration:none;transition:.2s;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2)
+}
+.nav-link:hover{background:#ef4444;border-color:#ef4444;color:#fff;box-shadow:0 0 15px rgba(239,68,68,0.4)}
+.nav-link.blue{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border:none;box-shadow:0 4px 12px rgba(59,130,246,0.3)}
+.nav-link.blue:hover{transform:translateY(-1px);filter:brightness(1.1);box-shadow:0 6px 16px rgba(59,130,246,0.4)}
+
+/* ── PAGES ── */
+.page{display:none;padding:24px;max-width:1600px;margin:0 auto;position:relative;z-index:1}
+.page.active{display:block}
+.page-kicker{
+  display:inline-block;font-size:0.8rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:#5eead4;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.2);
+  border-radius:20px;padding:6px 16px;margin-bottom:12px;
+}
+.page-title{font-family:var(--head);font-size:2.4rem;font-weight:800;margin-bottom:4px;letter-spacing:-0.5px}
+.page-sub{font-size:1rem;color:var(--muted);margin-top:2px}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:20px 24px;position:relative;overflow:hidden;
+}
+.stat-card::after{content:"";position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0}
+.stat-card.c-green::after{background:var(--green)}
+.stat-card.c-blue::after{background:var(--blue)}
+.stat-card.c-red::after{background:var(--red)}
+.stat-card.c-amber::after{background:var(--amber)}
+.stat-card.c-teal::after{background:var(--teal)}
+.stat-icon{
+  width:38px;height:38px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:19px;margin-bottom:12px;border:1px solid;
+}
+.ic-green{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2)}
+.ic-blue{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.2)}
+.ic-red{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.2)}
+.ic-amber{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.2)}
+.ic-teal{background:rgba(20,184,166,0.1);border-color:rgba(20,184,166,0.2)}
+.stat-label{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.stat-value{font-family:var(--head);font-size:2.8rem;font-weight:800;color:var(--text);line-height:1}
+.stat-sub{font-size:0.9rem;color:var(--muted);margin-top:8px}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:2.2fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+/* ── PANEL ── */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.panel-head{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:var(--head);font-size:1.2rem;font-weight:700}
+.panel-body{padding:20px 24px}
+.panel-tag{font-size:0.95rem;font-weight:600;padding:6px 12px;border-radius:8px}
+.tag-green{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2)}
+.tag-blue{background:rgba(59,130,246,0.1);color:#93c5fd;border:1px solid rgba(59,130,246,0.2)}
+
+/* ── TABLE ── */
+.table{width:100%;border-collapse:collapse;font-size:0.82rem}
+.table th{
+  text-align:left;padding:14px 18px;font-size:0.9rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,0.02);
+}
+.table td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--muted2);vertical-align:middle}
+.table td b,.table td strong{color:var(--text)}
+.table tr:last-child td{border-bottom:none}
+.table tr:hover td{background:rgba(255,255,255,0.02)}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-flex;align-items:center;padding:6px 14px;border-radius:10px;
+  font-size:0.9rem;font-weight:700;border:1px solid;
+}
+.badge-green{background:rgba(34,197,94,0.1);color:#4ade80;border-color:rgba(34,197,94,0.2)}
+.badge-blue{background:rgba(59,130,246,0.1);color:#93c5fd;border-color:rgba(59,130,246,0.2)}
+.badge-red{background:rgba(239,68,68,0.1);color:#f87171;border-color:rgba(239,68,68,0.2)}
+.badge-amber{background:rgba(245,158,11,0.1);color:#fbbf24;border-color:rgba(245,158,11,0.2)}
+.badge-teal{background:rgba(20,184,166,0.1);color:#5eead4;border-color:rgba(20,184,166,0.2)}
+
+/* ── CAP BAR ── */
+.cap-bar{height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden}
+.cap-fill{height:100%;border-radius:3px;transition:.4s}
+
+/* ── ACTIVITY ── */
+.activity-list{padding:4px 0;max-height:300px;overflow-y:auto}
+.activity-item{display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);align-items:flex-start}
+.activity-item:last-child{border-bottom:none}
+.act-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:4px}
+.act-dot.add{background:var(--green)}
+.act-dot.warn{background:var(--amber)}
+.act-dot.err{background:var(--red)}
+.act-time{font-size:0.7rem;color:var(--muted);flex-shrink:0;width:52px}
+.act-text{font-size:0.8rem;color:var(--muted2);line-height:1.4}
+.act-text strong{color:var(--text)}
+
+/* ── SHELTER CARDS ── */
+.shelter-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.shelter-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:.15s}
+.shelter-card:hover{border-color:var(--border2);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+.sc-name{font-family:var(--head);font-size:0.95rem;font-weight:700;margin-bottom:3px}
+.sc-addr{font-size:0.75rem;color:var(--muted);margin-bottom:10px}
+.sc-occ-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sc-occ-label{font-size:0.7rem;color:var(--muted2);white-space:nowrap}
+.sc-occ-pct{font-size:0.7rem;font-weight:600;white-space:nowrap}
+.sc-amenities{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.chip{font-size:0.65rem;padding:2px 7px;border-radius:6px;font-weight:600;border:1px solid}
+.chip-ok{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.2);color:#4ade80}
+.chip-no{background:rgba(255,255,255,0.04);border-color:var(--border);color:var(--muted)}
+
+/* ── REPORT ITEMS ── */
+.report-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px}
+.report-type{font-weight:700;font-size:0.9rem}
+.report-meta{font-size:0.72rem;color:var(--muted);margin-bottom:6px}
+.report-desc{font-size:0.8rem;color:var(--muted2);margin-bottom:8px;line-height:1.5}
+.report-footer{display:flex;align-items:center;justify-content:space-between}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:0.68rem;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:0.5px}
+.form-input,.form-select,.form-textarea{
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;color:var(--text);font-family:var(--font);font-size:0.82rem;
+  outline:none;transition:.15s;width:100%;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue)}
+.form-textarea{resize:vertical;min-height:65px}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:8px 16px;border-radius:8px;border:none;font-family:var(--font);
+  font-size:0.82rem;font-weight:600;cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-sm{padding:5px 12px;font-size:0.75rem}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-success{background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;box-shadow:0 4px 12px rgba(34,197,94,0.3)}
+.btn-success:hover{transform:translateY(-1px);filter:brightness(1.1);box-shadow:0 6px 16px rgba(34,197,94,0.4)}
+.btn-danger{background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;box-shadow:0 4px 12px rgba(239,68,68,0.3)}
+.btn-danger:hover{transform:translateY(-1px);filter:brightness(1.1);box-shadow:0 6px 16px rgba(239,68,68,0.4)}
+.btn-ghost{background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(59,130,246,0.05));color:#93c5fd;border:1px solid rgba(59,130,246,0.3)}
+.btn-ghost:hover{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff;border-color:transparent;transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,0.2)}
+
+/* ── SEARCH ── */
+.search-box{
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:8px 13px;color:var(--text);font-family:var(--font);font-size:0.82rem;
+  outline:none;transition:.15s;
+}
+.search-box:focus{border-color:var(--blue)}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(4,9,20,0.75);backdrop-filter:blur(6px);
+  z-index:2000;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:.2s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;
+  width:min(640px,96vw);max-height:90vh;overflow-y:auto;
+  box-shadow:0 40px 80px rgba(0,0,0,0.6);
+}
+.modal-head{
+  padding:18px 22px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;background:var(--surface);z-index:1;
+}
+.modal-title{font-family:var(--head);font-size:1rem;font-weight:800}
+.modal-close{
+  background:rgba(255,255,255,0.06);border:1px solid var(--border);width:30px;height:30px;
+  border-radius:8px;cursor:pointer;font-size:15px;color:var(--muted2);
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.modal-close:hover{background:rgba(239,68,68,0.15);color:#f87171}
+.modal-body{padding:22px}
+
+/* ── SHELTER MODAL TABS ── */
+.sh-tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--surface2)}
+.sh-tab{
+  flex:1;padding:11px;border:none;background:transparent;
+  border-bottom:2px solid transparent;font-family:var(--font);font-size:0.82rem;
+  font-weight:500;color:var(--muted);cursor:pointer;transition:.15s;
+}
+.sh-tab.active{background:var(--surface);border-bottom-color:var(--blue);color:#93c5fd;font-weight:600}
+
+/* ── PDF DROP ZONE ── */
+.pdf-drop-zone{
+  border:2px dashed var(--border2);border-radius:12px;padding:36px 20px;
+  text-align:center;cursor:pointer;transition:.2s;background:var(--surface2);
+}
+.pdf-drop-zone:hover{border-color:var(--blue);background:rgba(59,130,246,0.05)}
+
+/* ── TOAST ── */
+.toast-area{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:11px 16px;font-size:0.82rem;display:flex;align-items:center;gap:10px;
+  min-width:240px;box-shadow:0 20px 40px rgba(0,0,0,0.4);animation:toastin 0.25s ease;
+}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.warning{border-left:3px solid var(--amber)}
+@keyframes toastin{from{opacity:0;transform:translateY(10px)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">
+    <div class="brand-icon">&#128737;</div>
+    <div>
+      <div class="brand-name">Geo<span>Secure</span></div>
+      <div class="brand-sub">Recovery Command</div>
+    </div>
+  </a>
+  <button class="nav-tab active" data-page="dashboard">Dashboard</button>
+  <button class="nav-tab" data-page="shelters">Shelters</button>
+  <button class="nav-tab" data-page="reports">Damage Reports</button>
+  <button class="nav-tab" data-page="claims">Aid Requests</button>
+  <div class="nav-right">
+    <div class="live-pill"><span></span>Live</div>
+    <a href="/admin/rescue" class="nav-link blue">&#128680; Rescue Room</a>
+    <a href="/admin/dashboard" class="nav-link blue">&#8592; Admin Hub</a>
+    <a href="/user/logout" class="nav-link">Sign Out</a>
+  </div>
+</nav>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div>
+      <div class="page-kicker">Recovery Command</div>
+      <div class="page-title">Operations Overview</div>
+      <div class="page-sub">Real-time disaster relief operations across Tamil Nadu</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="autoAllocate()">&#9889; Auto-Allocate</button>
+      <button class="btn btn-ghost" onclick="loadStats()">&#8635; Refresh</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card c-green">
+      <div class="stat-icon ic-green">&#9989;</div>
+      <div class="stat-label">Total Rescued</div>
+      <div class="stat-value" id="st-rescued">&#8212;</div>
+      <div class="stat-sub">Confirmed safe</div>
+    </div>
+    <div class="stat-card c-teal">
+      <div class="stat-icon ic-teal">&#127968;</div>
+      <div class="stat-label">Active Shelters</div>
+      <div class="stat-value" id="st-shelters">&#8212;</div>
+      <div class="stat-sub">Operational camps</div>
+    </div>
+    <div class="stat-card c-red">
+      <div class="stat-icon ic-red">&#128680;</div>
+      <div class="stat-label">Critical Cases</div>
+      <div class="stat-value" id="st-critical">&#8212;</div>
+      <div class="stat-sub">Needs immediate care</div>
+    </div>
+    <div class="stat-card c-amber">
+      <div class="stat-icon ic-amber">&#128269;</div>
+      <div class="stat-label">Still Missing</div>
+      <div class="stat-value" id="st-missing">&#8212;</div>
+      <div class="stat-sub">Not yet located</div>
+    </div>
+    <div class="stat-card c-blue">
+      <div class="stat-icon ic-blue">&#127828;</div>
+      <div class="stat-label">Available Beds</div>
+      <div class="stat-value" id="st-beds">&#8212;</div>
+      <div class="stat-sub">Across all shelters</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Shelter Status Overview</span>
+      </div>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+        <input type="text" id="dash-shelter-search" class="search-box" style="width:100%"
+          placeholder="Search shelter by name or area..."
+          oninput="filterShelterTable()">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Shelter Name</th>
+              <th>Occupancy</th>
+              <th>Status</th>
+              <th>Medical</th>
+              <th>Contact</th>
+            </tr>
+          </thead>
+          <tbody id="dash-shelter-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Type above to search shelters</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Live Activity</span>
+        <span class="panel-tag tag-green">&#9679; Live</span>
+      </div>
+      <div class="activity-list" id="activity-feed">
+        <div style="text-align:center;padding:24px;color:var(--muted)">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SHELTERS ══════════ -->
+<div class="page" id="page-shelters">
+  <div class="page-header">
+    <div>
+      <div class="page-kicker">Shelter Management</div>
+      <div class="page-title">Open Shelters</div>
+      <div class="page-sub">Manage all active relief centres and their capacity</div>
+    </div>
+    <button class="btn btn-success" onclick="openModal('modal-add-shelter')">+ Add Shelter</button>
+  </div>
+  <div style="margin-bottom:16px">
+    <input type="text" class="search-box" id="shelter-main-search" style="width:100%;max-width:500px"
+      placeholder="Search by shelter name or city (e.g. Chennai, Madurai)..."
+      oninput="searchAndRenderShelters()">
+  </div>
+  <div id="shelters-grid">
+    <div style="text-align:center;padding:60px;color:var(--muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">&#127968;</div>
+      <div style="font-family:var(--head);font-size:1rem;font-weight:700;margin-bottom:4px">Search to view shelters</div>
+      <div style="font-size:0.82rem">Type a city or shelter name above to get started</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DAMAGE REPORTS ══════════ -->
+<div class="page" id="page-reports">
+  <div class="page-header">
+    <div>
+      <div class="page-kicker">Damage Reporting</div>
+      <div class="page-title">Damage Reports</div>
+      <div class="page-sub">Review and act on filed damage reports</div>
+    </div>
+    <button class="btn btn-ghost" onclick="loadDamageReports()">&#8635; Refresh</button>
+  </div>
+  <div class="grid-2">
+    <div id="reports-list">
+      <div style="text-align:center;padding:40px;color:var(--muted)">Loading...</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">File New Report</span></div>
+      <div class="panel-body">
+        <form onsubmit="submitReport(event)">
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Reporter Name</label>
+            <input class="form-input" name="reporter_name" required>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Location</label>
+            <input class="form-input" name="location" required>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Damage Type</label>
+            <select class="form-select" name="damage_type" required>
+              <option value="">Select type</option>
+              <option>Flood Damage</option><option>Building Collapse</option>
+              <option>Road Damage</option><option>Bridge Damage</option>
+              <option>Power Outage</option><option>Fire Damage</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">Severity</label>
+            <select class="form-select" name="severity">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" name="description"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%">Submit Report</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ AID REQUESTS ══════════ -->
+<div class="page" id="page-claims">
+  <div class="page-header">
+    <div>
+      <div class="page-kicker">Aid Management</div>
+      <div class="page-title">Aid Requests</div>
+      <div class="page-sub">Review and approve disaster aid claims</div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div id="claims-list">
+      <div style="text-align:center;padding:40px;color:var(--muted)">Loading...</div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">New Aid Claim</span></div>
+      <div class="panel-body">
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Claimant Name *</label><input class="form-input" id="cl-name"></div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Category *</label>
+          <select class="form-select" id="cl-category">
+            <option value="">Select</option>
+            <option>Housing Damage</option><option>Medical Expenses</option>
+            <option>Food &amp; Water</option><option>Livestock Loss</option>
+            <option>Crop Damage</option><option>Vehicle Damage</option>
+            <option>Business Loss</option><option>Emergency Relief</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Amount (&#8377;)</label><input class="form-input" id="cl-amount" type="number" min="0"></div>
+        <div class="form-group" style="margin-bottom:10px"><label class="form-label">Victim ID (optional)</label><input class="form-input" id="cl-victim" type="number"></div>
+        <div class="form-group" style="margin-bottom:12px"><label class="form-label">Description</label><textarea class="form-textarea" id="cl-desc"></textarea></div>
+        <button class="btn btn-success" style="width:100%" onclick="submitClaim()">Submit Claim</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: ADD SHELTER ══════════ -->
+<div class="modal-overlay" id="modal-add-shelter" onclick="if(event.target===this)closeModal('modal-add-shelter')">
+  <div class="modal" style="width:min(680px,96vw)">
+    <div class="modal-head">
+      <span class="modal-title">Add Shelter</span>
+      <button class="modal-close" onclick="closeModal('modal-add-shelter')">&#10005;</button>
+    </div>
+    <div style="padding:0">
+      <div class="sh-tab-bar">
+        <button id="sh-tab-manual" class="sh-tab active" onclick="switchShTab('manual')">&#9998; Manual Entry</button>
+        <button id="sh-tab-pdf"    class="sh-tab"        onclick="switchShTab('pdf')">&#128196; Import from PDF</button>
+      </div>
+      <!-- Manual panel -->
+      <div id="sh-panel-manual" style="padding:20px">
+        <div class="form-grid">
+          <div class="form-group full"><label class="form-label">Shelter Name *</label><input class="form-input" id="sh-name"></div>
+          <div class="form-group full"><label class="form-label">Address</label><input class="form-input" id="sh-addr"></div>
+          <div class="form-group"><label class="form-label">Latitude</label><input class="form-input" id="sh-lat" type="number" step="any"></div>
+          <div class="form-group"><label class="form-label">Longitude</label><input class="form-input" id="sh-lng" type="number" step="any"></div>
+          <div class="form-group"><label class="form-label">Total Capacity</label><input class="form-input" id="sh-cap" type="number" value="100"></div>
+          <div class="form-group"><label class="form-label">Contact</label><input class="form-input" id="sh-contact"></div>
+          <div class="form-group full">
+            <label class="form-label">Amenities Available</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer"><input type="checkbox" id="sh-medical" checked> Medical</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer"><input type="checkbox" id="sh-food" checked> Food</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer"><input type="checkbox" id="sh-water" checked> Water</label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer"><input type="checkbox" id="sh-power"> Power</label>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-success" style="width:100%;margin-top:14px" onclick="submitAddShelter()">Add Shelter</button>
+      </div>
+      <!-- PDF panel -->
+      <div id="sh-panel-pdf" style="padding:20px;display:none">
+        <div class="pdf-drop-zone" id="pdf-dropzone"
+          onclick="document.getElementById('pdf-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--blue)'"
+          ondragleave="this.style.borderColor='var(--border2)'"
+          ondrop="handlePdfDrop(event)">
+          <div style="font-size:2.5rem;margin-bottom:10px">&#128196;</div>
+          <div style="font-family:var(--head);font-size:1rem;font-weight:700;margin-bottom:4px">Drop a shelter PDF here</div>
+          <div style="font-size:0.78rem;color:var(--muted)">or click to browse &middot; Works with GCC / OpenCity / any tabular shelter PDF</div>
+          <input type="file" id="pdf-file-input" accept=".pdf" style="display:none" onchange="handlePdfFile(this.files[0])">
+        </div>
+        <div id="pdf-progress" style="display:none;margin-top:16px">
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px" id="pdf-progress-msg">Parsing PDF...</div>
+          <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div id="pdf-progress-bar" style="height:100%;background:var(--blue);border-radius:3px;width:0%;transition:.3s"></div>
+          </div>
+        </div>
+        <div id="pdf-preview" style="display:none;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:0.82rem;font-weight:600" id="pdf-preview-title"></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="clearPdfPreview()">&#10005; Clear</button>
+              <button class="btn btn-success btn-sm" id="pdf-import-btn" onclick="importParsedShelters()">&#8679; Import All</button>
+            </div>
+          </div>
+          <div style="max-height:290px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+            <table class="table" id="pdf-preview-table">
+              <thead><tr>
+                <th><input type="checkbox" id="pdf-check-all" onchange="toggleAllPdfRows(this.checked)" checked></th>
+                <th>Centre Name</th><th>Address</th><th>Capacity</th><th>Contact</th>
+              </tr></thead>
+              <tbody id="pdf-preview-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:8px;font-size:0.72rem;color:var(--muted)">&#10003; Select rows to import. Duplicates (same name) will be skipped automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-area" id="toast-area"></div>
+
+<script>
+let currentPage = 'dashboard', allSheltersCache = null;
+
+document.querySelectorAll('.nav-tab[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => showPage(btn.dataset.page));
+});
+
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === name));
+    document.getElementById('page-' + name).classList.add('active');
+    currentPage = name;
+    if (name === 'dashboard') loadStats();
+    if (name === 'shelters') { allSheltersCache = null; loadAllShelters(); }
+    if (name === 'reports')  loadDamageReports();
+    if (name === 'claims')   loadAidClaims();
+}
+
+// ── STATS ──────────────────────────────────────────────────────────
+async function loadStats() {
+    try {
+        const res = await fetch('/api/recovery/stats');
+        if (!res.ok) throw new Error();
+        const s = await res.json();
+        document.getElementById('st-rescued').textContent  = s.rescued;
+        document.getElementById('st-shelters').textContent = s.total_shelters;
+        document.getElementById('st-critical').textContent = s.critical;
+        document.getElementById('st-missing').textContent  = s.missing;
+        document.getElementById('st-beds').textContent     = s.available_beds ?? (s.total_beds - s.occupied_beds);
+        loadActivity();
+        const sr = await fetch('/api/recovery/shelters');
+        allSheltersCache = await sr.json();
+    } catch { showToast('Failed to load stats', 'error'); }
+}
+
+function filterShelterTable() {
+    const q = document.getElementById('dash-shelter-search').value.trim().toLowerCase();
+    const tbody = document.getElementById('dash-shelter-tbody');
+    if (!q) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">Type above to search shelters</td></tr>'; return; }
+    const filtered = (allSheltersCache || []).filter(s => s.name.toLowerCase().includes(q) || (s.address || '').toLowerCase().includes(q));
+    if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--muted)">No shelters found</td></tr>'; return; }
+    tbody.innerHTML = filtered.map(sh => {
+        const pct = Math.round(sh.current_occupancy / sh.total_capacity * 100);
+        const col = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--amber)' : 'var(--green)';
+        return `<tr>
+            <td><strong>${sh.name}</strong><br><span style="font-size:0.7rem;color:var(--muted)">${sh.address || ''}</span></td>
+            <td><div style="display:flex;align-items:center;gap:8px">
+                <div class="cap-bar" style="flex:1"><div class="cap-fill" style="width:${pct}%;background:${col}"></div></div>
+                <span style="font-size:0.7rem;color:var(--muted)">${pct}%</span>
+            </div></td>
+            <td><span class="badge badge-${sh.status === 'active' ? 'green' : 'amber'}">${sh.status}</span></td>
+            <td>${sh.has_medical ? '<span class="badge badge-blue">Yes</span>' : '<span style="color:var(--muted);font-size:0.75rem">No</span>'}</td>
+            <td style="font-size:0.72rem;color:var(--muted)">${sh.contact || '&#8212;'}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function loadActivity() {
+    const res = await fetch('/api/recovery/activity');
+    const acts = await res.json();
+    const feed = document.getElementById('activity-feed');
+    const colorMap = { VICTIM_ADDED: 'add', RESCUE: 'add', USER_SOS: 'err', DAMAGE_REPORT: 'warn', AUTO_ALLOCATE: 'add', VICTIM_ASSIGNED: 'add' };
+    feed.innerHTML = acts.map(a => {
+        const cls  = colorMap[a.action] || '';
+        const time = new Date(a.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `<div class="activity-item"><div class="act-dot ${cls}"></div><span class="act-time">${time}</span><span class="act-text"><strong>${a.action.replace(/_/g, ' ')}</strong> &mdash; ${a.details}</span></div>`;
+    }).join('') || '<div style="text-align:center;padding:24px;color:var(--muted)">No activity yet</div>';
+}
+
+// ── SHELTERS ───────────────────────────────────────────────────────
+async function loadAllShelters() {
+    const grid = document.getElementById('shelters-grid');
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Loading shelters...</div>';
+    try {
+        const res = await fetch('/api/recovery/shelters');
+        allSheltersCache = await res.json();
+        renderShelterCards(allSheltersCache);
+    } catch {
+        grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Failed to load shelters</div>';
+    }
+}
+
+function renderShelterCards(list) {
+    const grid = document.getElementById('shelters-grid');
+    if (!list || !list.length) { grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No shelters found</div>'; return; }
+    const active = list.filter(s => s.status === 'active').length;
+    grid.innerHTML = `<div style="margin-bottom:12px;font-size:0.75rem;color:#93c5fd;font-weight:600">
+        <span style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);padding:3px 12px;border-radius:20px">
+            &#127968; ${list.length} shelters &middot; ${active} active
+        </span></div>
+        <div class="shelter-cards">${list.map(s => {
+        const occ = s.current_occupancy || 0;
+        const cap = s.total_capacity || 100;
+        const pct = Math.min(100, Math.round(occ / cap * 100));
+        const col = pct >= 90 ? 'var(--red)' : pct >= 70 ? 'var(--amber)' : 'var(--green)';
+        return `<div class="shelter-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+                <span class="sc-name">${s.name}</span>
+                <span class="badge badge-${s.status === 'active' ? 'green' : 'amber'}">${s.status || 'active'}</span>
+            </div>
+            <div class="sc-addr">&#128205; ${s.address || '&#8212;'}</div>
+            <div class="sc-occ-row">
+                <span class="sc-occ-label">${occ}/${cap}</span>
+                <div style="flex:1"><div class="cap-bar"><div class="cap-fill" style="width:${pct}%;background:${col}"></div></div></div>
+                <span class="sc-occ-pct" style="color:${col}">${pct}%</span>
+            </div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px">&#128222; ${s.contact || '&#8212;'}</div>
+            <div class="sc-amenities">
+                <span class="chip ${s.has_medical ? 'chip-ok' : 'chip-no'}">&#127973; Medical</span>
+                <span class="chip ${s.has_food    ? 'chip-ok' : 'chip-no'}">&#127869; Food</span>
+                <span class="chip ${s.has_water   ? 'chip-ok' : 'chip-no'}">&#128167; Water</span>
+                <span class="chip ${s.has_power   ? 'chip-ok' : 'chip-no'}">&#9889; Power</span>
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
+
+function searchAndRenderShelters() {
+    if (!allSheltersCache) return;
+    const q = document.getElementById('shelter-main-search').value.trim().toLowerCase();
+    if (!q) { renderShelterCards(allSheltersCache); return; }
+    renderShelterCards(allSheltersCache.filter(s => s.name.toLowerCase().includes(q) || (s.address || '').toLowerCase().includes(q)));
+}
+
+async function submitAddShelter() {
+    const name = document.getElementById('sh-name').value.trim();
+    if (!name) { showToast('Shelter name required', 'error'); return; }
+    const data = {
+        name, address: document.getElementById('sh-addr').value,
+        latitude:  parseFloat(document.getElementById('sh-lat').value)  || null,
+        longitude: parseFloat(document.getElementById('sh-lng').value)  || null,
+        total_capacity: parseInt(document.getElementById('sh-cap').value) || 100,
+        contact:  document.getElementById('sh-contact').value,
+        has_medical: document.getElementById('sh-medical').checked ? 1 : 0,
+        has_food:    document.getElementById('sh-food').checked    ? 1 : 0,
+        has_water:   document.getElementById('sh-water').checked   ? 1 : 0,
+        has_power:   document.getElementById('sh-power').checked   ? 1 : 0,
+        status: 'active'
+    };
+    const res = await fetch('/api/recovery/shelters', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const d = await res.json();
+    if (d.success) {
+        showToast(`Shelter added (#${d.id})`, 'success');
+        closeModal('modal-add-shelter');
+        allSheltersCache = null; loadAllShelters(); loadStats();
+    } else showToast(d.error || 'Error', 'error');
+}
+
+// ── DAMAGE REPORTS ─────────────────────────────────────────────────
+async function loadDamageReports() {
+    const res = await fetch('/api/recovery/damage-reports');
+    const reports = await res.json();
+    const el = document.getElementById('reports-list');
+    if (!reports.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No reports yet</div>'; return; }
+    el.innerHTML = reports.map(r => `<div class="report-item">
+        <div class="report-head"><span class="report-type">${r.damage_type || 'Unknown'}</span>
+            <span class="badge badge-${r.severity === 'high' ? 'red' : r.severity === 'medium' ? 'amber' : 'green'}">${(r.severity || 'medium').toUpperCase()}</span>
+        </div>
+        <div class="report-meta">&#128205; ${r.location || '&#8212;'} &middot; Reported by ${r.reporter_name || '&#8212;'}</div>
+        ${r.description ? `<div class="report-desc">${r.description}</div>` : ''}
+        <div class="report-footer">
+            <span style="font-size:0.7rem;color:var(--muted)">${new Date(r.created_at).toLocaleString()}</span>
+            ${r.status === 'pending'
+                ? `<div style="display:flex;gap:6px"><button class="btn btn-success btn-sm" onclick="actReport(${r.id},'verified')">&#10004; Verify</button><button class="btn btn-danger btn-sm" onclick="actReport(${r.id},'dismissed')">&#10005; Dismiss</button></div>`
+                : `<span class="badge badge-${r.status === 'verified' ? 'green' : 'amber'}">${r.status.toUpperCase()}</span>`}
+        </div></div>`).join('');
+}
+
+async function submitReport(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const res = await fetch('/api/recovery/damage-reports', { method: 'POST', body: fd });
+    const d = await res.json();
+    if (d.success) { showToast('Report submitted', 'success'); e.target.reset(); loadDamageReports(); }
+    else showToast('Error submitting report', 'error');
+}
+
+async function actReport(id, status) {
+    await fetch(`/api/recovery/damage-reports/${id}/action`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, actor: 'admin' }) });
+    showToast(`Report ${status}`, 'success'); loadDamageReports();
+}
+
+// ── AID CLAIMS ─────────────────────────────────────────────────────
+async function loadAidClaims() {
+    const res = await fetch('/api/recovery/aid-claims');
+    const claims = await res.json();
+    const el = document.getElementById('claims-list');
+    if (!claims.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No aid claims yet</div>'; return; }
+    el.innerHTML = claims.map(c => `<div class="report-item">
+        <div class="report-head"><span class="report-type">${c.claimant_name}</span>
+            <span style="font-family:var(--head);font-size:1rem;font-weight:800;color:var(--green)">&#8377;${(c.amount || 0).toLocaleString('en-IN')}</span>
+        </div>
+        <div class="report-meta">${c.category || '&#8212;'}${c.victim_name ? ' &middot; Victim: ' + c.victim_name : ''}</div>
+        ${c.description ? `<div class="report-desc">${c.description}</div>` : ''}
+        <div class="report-footer">
+            <span style="font-size:0.7rem;color:var(--muted)">${new Date(c.created_at).toLocaleString()}</span>
+            ${c.status === 'pending'
+                ? `<div style="display:flex;gap:6px"><button class="btn btn-success btn-sm" onclick="actClaim(${c.id},'approved')">&#10004; Approve</button><button class="btn btn-danger btn-sm" onclick="actClaim(${c.id},'rejected')">&#10005; Reject</button></div>`
+                : `<span class="badge badge-${c.status === 'approved' ? 'green' : 'red'}">${c.status.toUpperCase()}</span>`}
+        </div></div>`).join('');
+}
+
+async function submitClaim() {
+    const name = document.getElementById('cl-name').value.trim();
+    const cat  = document.getElementById('cl-category').value;
+    if (!name || !cat) { showToast('Name and category required', 'error'); return; }
+    const data = { claimant_name: name, category: cat, amount: parseFloat(document.getElementById('cl-amount').value) || 0, victim_id: parseInt(document.getElementById('cl-victim').value) || null, description: document.getElementById('cl-desc').value };
+    const res = await fetch('/api/recovery/aid-claims', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const d = await res.json();
+    if (d.success) {
+        showToast(`Claim #${d.id} submitted`, 'success');
+        ['cl-name','cl-amount','cl-victim','cl-desc'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('cl-category').value = '';
+        loadAidClaims();
+    } else showToast(d.error || 'Error', 'error');
+}
+
+async function actClaim(id, status) {
+    await fetch(`/api/recovery/aid-claims/${id}/action`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status, actor: 'admin' }) });
+    showToast(`Claim ${status}`, 'success'); loadAidClaims();
+}
+
+// ── AUTO ALLOCATE ──────────────────────────────────────────────────
+async function autoAllocate() {
+    const res = await fetch('/api/recovery/auto-allocate', { method: 'POST' });
+    const d = await res.json();
+    showToast(`Auto-allocated ${d.assigned} victims`, 'success'); loadStats();
+}
+
+// ── MODAL ──────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── TOAST ──────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    const icons = { success: '&#10003;', error: '&#10007;', warning: '&#9888;' };
+    el.innerHTML = `<span style="font-weight:700">${icons[type] || '&#10003;'}</span><span>${msg}</span>`;
+    document.getElementById('toast-area').appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── SHELTER MODAL TABS ─────────────────────────────────────────────
+function switchShTab(tab) {
+    const isManual = tab === 'manual';
+    document.getElementById('sh-panel-manual').style.display = isManual ? 'block' : 'none';
+    document.getElementById('sh-panel-pdf').style.display    = isManual ? 'none'  : 'block';
+    document.getElementById('sh-tab-manual').classList.toggle('active', isManual);
+    document.getElementById('sh-tab-pdf').classList.toggle('active', !isManual);
+}
+
+// ── BOOT ───────────────────────────────────────────────────────────
+loadStats();
+setInterval(loadActivity, 30000);
+
+// ─── PDF SHELTER IMPORT ───────────────────────────────────────────────────
+        let parsedPdfShelters = [];
+
+        function switchShTab(tab) {
+            const isManual = tab === 'manual';
+            document.getElementById('sh-panel-manual').style.display = isManual ? 'block' : 'none';
+            document.getElementById('sh-panel-pdf').style.display = isManual ? 'none' : 'block';
+            document.getElementById('sh-tab-manual').style.cssText += isManual
+                ? ';background:var(--surface);border-bottom:2px solid var(--blue);color:var(--blue);font-weight:600'
+                : ';background:transparent;border-bottom:2px solid transparent;color:var(--text2);font-weight:500';
+            document.getElementById('sh-tab-pdf').style.cssText += isManual
+                ? ';background:transparent;border-bottom:2px solid transparent;color:var(--text2);font-weight:500'
+                : ';background:var(--surface);border-bottom:2px solid var(--blue);color:var(--blue);font-weight:600';
+        }
+
+        function handlePdfDrop(e) {
+            e.preventDefault();
+            const dz = document.getElementById('pdf-dropzone');
+            dz.style.borderColor = 'var(--border-strong)';
+            dz.style.background = 'var(--surface2)';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') handlePdfFile(file);
+            else showToast('Please drop a PDF file', 'error');
+        }
+
+        async function handlePdfFile(file) {
+            if (!file) return;
+            document.getElementById('pdf-progress').style.display = 'block';
+            document.getElementById('pdf-preview').style.display = 'none';
+            document.getElementById('pdf-progress-msg').textContent = 'Loading PDF.js…';
+            document.getElementById('pdf-progress-bar').style.width = '10%';
+
+            // Load PDF.js if not already loaded
+            if (!window.pdfjsLib) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+
+            document.getElementById('pdf-progress-msg').textContent = 'Reading PDF pages…';
+            document.getElementById('pdf-progress-bar').style.width = '25%';
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const shelters = [];
+
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const pct = 25 + Math.round((p / pdf.numPages) * 60);
+                document.getElementById('pdf-progress-bar').style.width = pct + '%';
+                document.getElementById('pdf-progress-msg').textContent = `Parsing page ${p} of ${pdf.numPages}…`;
+
+                const page = await pdf.getPage(p);
+                const content = await page.getTextContent();
+
+                // Group text items into rows by Y position (±4px tolerance)
+                const rowMap = {};
+                for (const item of content.items) {
+                    const y = Math.round(item.transform[5] / 4) * 4;
+                    if (!rowMap[y]) rowMap[y] = [];
+                    rowMap[y].push({ x: Math.round(item.transform[4]), text: item.str.trim() });
+                }
+
+                const sortedYs = Object.keys(rowMap).map(Number).sort((a, b) => b - a);
+
+                // Auto-detect header row — look for keywords
+                let headerY = null, colMap = {};
+                for (const y of sortedYs) {
+                    const rowText = rowMap[y].map(i => i.text.toLowerCase()).join(' ');
+                    if ((rowText.includes('name') || rowText.includes('centre') || rowText.includes('shelter')) &&
+                        (rowText.includes('address') || rowText.includes('capacity') || rowText.includes('no'))) {
+                        headerY = y;
+                        rowMap[y].sort((a, b) => a.x - b.x).forEach(item => {
+                            const t = item.text.toLowerCase().replace(/[.\s]/g, '');
+                            if (t.includes('sno') || t === 'no' || t === 'sl') colMap.sno = item.x;
+                            else if (t.includes('centre') || t.includes('shelter') || t.includes('name')) colMap.name = item.x;
+                            else if (t.includes('address') || t.includes('location') || t.includes('area')) colMap.address = item.x;
+                            else if (t.includes('capacity') || t.includes('beds') || t.includes('cap')) colMap.capacity = item.x;
+                            else if (t.includes('contact') || t.includes('phone') || t.includes('tel')) colMap.contact = item.x;
+                            else if (t.includes('zone') || t.includes('ward') || t.includes('region')) colMap.zone = item.x;
+                        });
+                        break;
+                    }
+                }
+
+                if (!headerY || colMap.name == null) continue;
+
+                // Helper: pick cell closest to a column X within tolerance
+                const getCell = (cells, targetX, tol = 130) => {
+                    if (targetX == null) return '';
+                    let best = '', bestD = Infinity;
+                    for (const c of cells) {
+                        const d = Math.abs(c.x - targetX);
+                        if (d < bestD && d < tol) { bestD = d; best = c.text; }
+                    }
+                    return best;
+                };
+
+                // Parse data rows below header
+                for (const y of sortedYs) {
+                    if (y >= headerY - 2) continue;
+                    const cells = rowMap[y].sort((a, b) => a.x - b.x);
+                    if (cells.length < 2) continue;
+
+                    const name = getCell(cells, colMap.name) || cells.find(c => c.text.length > 3 && !/^\d+$/.test(c.text))?.text || '';
+                    if (!name || name.length < 3 || /^(s\.?no|sl|name|centre|shelter|address)$/i.test(name) || /not found|unknown|n\/a|--/i.test(name)) continue;
+                    if (/^\d{1,3}$/.test(name)) continue; // skip row numbers
+
+                    const address = getCell(cells, colMap.address) || cells[2]?.text || '';
+                    const capRaw = getCell(cells, colMap.capacity) || '';
+                    const contact = getCell(cells, colMap.contact) || '—';
+                    const zone = getCell(cells, colMap.zone) || '';
+                    const capacity = parseInt(capRaw.replace(/[^\d]/g, '')) || 100;
+
+                    shelters.push({
+                        name: name.trim(),
+                        address: (address + (zone ? `, ${zone}` : '')).trim() || '—',
+                        total_capacity: capacity,
+                        contact: contact.trim() || '—',
+                        has_medical: 1, has_food: 1, has_water: 1, has_power: 0,
+                        status: 'active'
+                    });
+                }
+            }
+
+            document.getElementById('pdf-progress-bar').style.width = '100%';
+            document.getElementById('pdf-progress-msg').textContent = `Found ${shelters.length} shelter entries`;
+
+            setTimeout(() => {
+                document.getElementById('pdf-progress').style.display = 'none';
+                if (shelters.length === 0) {
+                    showToast('No shelter table found in PDF — try a different file', 'error');
+                    return;
+                }
+                parsedPdfShelters = shelters;
+                renderPdfPreview(shelters, file.name);
+            }, 400);
+        }
+
+        function renderPdfPreview(shelters, filename) {
+            document.getElementById('pdf-preview-title').innerHTML =
+                `📄 <strong>${filename}</strong> — <span style="color:var(--green)">${shelters.length} shelters detected</span>`;
+            document.getElementById('pdf-preview-tbody').innerHTML = shelters.map((s, i) => `
+        <tr id="pdf-row-${i}">
+            <td><input type="checkbox" class="pdf-row-check" data-idx="${i}" checked></td>
+            <td style="font-weight:500;color:var(--text)">${s.name}</td>
+            <td style="color:var(--text2);font-size:12px">${s.address}</td>
+            <td style="font-family:var(--mono);font-size:12px">${s.total_capacity}</td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${s.contact}</td>
+        </tr>`).join('');
+            document.getElementById('pdf-preview').style.display = 'block';
+            document.getElementById('pdf-import-btn').textContent = `⬆ Import All (${shelters.length})`;
+            document.querySelectorAll('.pdf-row-check').forEach(cb => cb.addEventListener('change', updateImportCount));
+        }
+
+        function updateImportCount() {
+            const n = document.querySelectorAll('.pdf-row-check:checked').length;
+            document.getElementById('pdf-import-btn').textContent = `⬆ Import Selected (${n})`;
+        }
+
+        function toggleAllPdfRows(checked) {
+            document.querySelectorAll('.pdf-row-check').forEach(cb => cb.checked = checked);
+            updateImportCount();
+        }
+
+        function clearPdfPreview() {
+            parsedPdfShelters = [];
+            document.getElementById('pdf-preview').style.display = 'none';
+            document.getElementById('pdf-file-input').value = '';
+        }
+
+        async function importParsedShelters() {
+            const selected = [...document.querySelectorAll('.pdf-row-check:checked')].map(cb => parseInt(cb.dataset.idx));
+            if (!selected.length) { showToast('No shelters selected', 'error'); return; }
+
+            const btn = document.getElementById('pdf-import-btn');
+            btn.disabled = true; btn.textContent = 'Importing…';
+
+            let added = 0, skipped = 0;
+            for (const idx of selected) {
+                const s = parsedPdfShelters[idx];
+                try {
+                    const res = await fetch('/api/recovery/shelters', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(s)
+                    });
+                    const d = await res.json();
+                    if (d.success) added++;
+                    else skipped++; // likely duplicate
+                } catch { skipped++; }
+            }
+
+            btn.disabled = false;
+            showToast(`✅ Imported ${added} shelters${skipped ? ` · ${skipped} skipped` : ''}`, 'success');
+            closeModal('modal-add-shelter');
+            allSheltersCache = null; // force reload
+            if (currentPage === 'shelters') searchAndRenderShelters();
+            loadStats();
+            clearPdfPreview();
+        }
+</script>
+</body>
+</html>

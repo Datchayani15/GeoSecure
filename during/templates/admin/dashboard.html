@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GeoSecure — Rescue Control Room</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand"><span>🛡️</span><span>Geo<b>Secure</b></span></a>
+  <div class="nav-center">
+    <span class="nav-tag">Rescue Control Room</span>
+    <div class="risk-pill" id="riskPill">
+      <span class="rpill-dot" id="rpillDot"></span>
+      <span id="rpillText">Loading...</span>
+    </div>
+  </div>
+  <div class="nav-actions">
+    <button class="nav-btn btn-danger" onclick="simulateRoadBlock()">🚧 Random Block</button>
+    <button class="nav-btn btn-warn"   onclick="simulateBlockOnRoute()">🎯 Block Route</button>
+    <button class="nav-btn btn-cyan"   onclick="clearRoadBlocks()">🧹 Clear</button>
+    <button class="nav-btn btn-primary" onclick="autoAssignAll()">⚡ Auto Assign</button>
+    <a href="/admin/dashboard" class="nav-btn btn-muted" style="opacity:0.8">← Admin Hub</a>
+    <a href="/user/logout" class="nav-btn btn-logout">Sign Out</a>
+  </div>
+</nav>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-icon">🆘</div>
+    <div><div class="stat-num" id="statTotal">0</div><div class="stat-lbl">Total SOS</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⏳</div>
+    <div><div class="stat-num" id="statPending">0</div><div class="stat-lbl">Pending</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🚑</div>
+    <div><div class="stat-num" id="statAssigned">0</div><div class="stat-lbl">Dispatched</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div><div class="stat-num" id="statRescued">0</div><div class="stat-lbl">Rescued</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🚧</div>
+    <div><div class="stat-num" id="statBlocks">0</div><div class="stat-lbl">Road Blocks</div></div>
+  </div>
+</div>
+
+<div class="main-grid">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sb-title">
+        <a href="/" style="text-decoration:none;color:inherit">🛡️ Geo<b>Secure</b></a>
+      </div>
+      <span class="live-badge"><span></span>Live</span>
+    </div>
+    <div id="sosList"><div class="empty-state">No active SOS requests</div></div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-col">
+    <div class="map-card">
+      <div id="map"></div>
+    </div>
+
+    <div class="bottom-panels">
+      <div class="detail-panel">
+        <h4>Selected SOS Details</h4>
+        <div id="sosDetails"><p class="empty-txt">Click an SOS request to view details</p></div>
+      </div>
+      <div class="detail-panel" style="border-right:none">
+        <h4>Real-time Intelligence</h4>
+        <div class="intel-log" id="intelLog">
+          <div class="intel-item">System operational. Monitoring Chennai sectors...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=2.0"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoSecure — Emergency SOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/victim.css') }}">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand"><span class="nav-icon">🛡️</span><span>Geo<b>Secure</b></span></a>
+  <div class="nav-center" id="navRisk">
+    <span class="nav-risk-dot" id="navDot"></span>
+    <span id="navRiskText">—</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="/shelters" class="nav-shelters-btn">🏠 Open Shelters</a>
+    <a href="/user/logout" class="nav-logout">Sign Out</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Left panel: SOS form -->
+  <div class="panel-left">
+    <div class="panel-header">
+      <div class="phase-tag">Phase 02 · During Disaster</div>
+      <h1>Emergency <span class="accent">SOS</span></h1>
+      <p class="panel-sub">Your location will be shared with rescue teams immediately.</p>
+    </div>
+
+    <!-- Location status -->
+    <div class="loc-bar" id="locationStatus">
+      <span class="loc-spinner"></span> Detecting your location...
+    </div>
+
+    <!-- Risk warning bar -->
+    <div class="risk-warn" id="riskWarn" style="display:none"></div>
+
+    <!-- SOS button -->
+    <div class="sos-area">
+      <button class="sos-btn" id="sosButton" onclick="quickSOS()">
+        <div class="sos-rings"><div></div><div></div><div></div></div>
+        <div class="sos-inner">
+          <span class="sos-label" id="sosLabel">SOS</span>
+          <span class="sos-sub">TAP FOR HELP</span>
+          <div class="sos-spinner" id="sosSpinner"></div>
+        </div>
+      </button>
+    </div>
+
+    <div class="or-divider"><span>or add more details below</span></div>
+
+    <!-- Detail form -->
+    <form id="sosForm" class="sos-form" onsubmit="submitDetailedSOS(event)">
+      <div class="field">
+        <label>Medical Condition <span class="opt">optional</span></label>
+        <textarea id="medical" rows="2" placeholder="e.g. fracture, bleeding, chest pain…"></textarea>
+      </div>
+      <div class="field">
+        <label>Vulnerability <span class="opt">select all that apply</span></label>
+        <div style="display:flex;gap:6px;margin-bottom:8px;font-size:0.72rem">
+          <span style="background:rgba(239,68,68,0.15);color:#f87171;padding:2px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.3)">🔴 HIGH</span>
+          <span style="background:rgba(249,115,22,0.15);color:#fb923c;padding:2px 8px;border-radius:10px;border:1px solid rgba(249,115,22,0.3)">🟠 MEDIUM</span>
+          <span style="color:var(--muted)">← priority assigned automatically</span>
+        </div>
+        <div class="tag-group" id="tagGroup">
+          <label class="tag-pill high-tag"><input type="checkbox" name="vulnerability" value="elderly">👴 Elderly</label>
+          <label class="tag-pill high-tag"><input type="checkbox" name="vulnerability" value="pregnant">🤰 Pregnant</label>
+          <label class="tag-pill high-tag"><input type="checkbox" name="vulnerability" value="injured">🤕 Injured</label>
+          <label class="tag-pill high-tag"><input type="checkbox" name="vulnerability" value="trapped">🚧 Trapped</label>
+          <label class="tag-pill high-tag"><input type="checkbox" name="vulnerability" value="disabled">♿ Disabled</label>
+          <label class="tag-pill medium-tag"><input type="checkbox" name="vulnerability" value="child">👶 Child</label>
+          <label class="tag-pill medium-tag"><input type="checkbox" name="vulnerability" value="women">👩 Women</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Photo <span class="opt">optional — situation / damage</span></label>
+        <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoInput').click()">
+          <span class="photo-icon">📷</span>
+          <span class="photo-text">Tap to attach photo</span>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+        <img id="photoPreview" style="display:none;width:100%;border-radius:10px;margin-top:10px">
+      </div>
+      <button type="submit" class="btn-detailed">📤 Send Detailed SOS</button>
+    </form>
+  </div>
+
+  <!-- Right panel: waiting → status card + live map -->
+  <div class="panel-right" id="panelRight">
+
+    <!-- Waiting state (before SOS) -->
+    <div class="waiting-state" id="waitingState">
+      <div class="waiting-icon">📡</div>
+      <h3>Ready to respond</h3>
+      <p>Tap the SOS button to alert rescue teams.<br>Your live location will be shared instantly.</p>
+    </div>
+
+    <!-- Status card (shown after SOS sent) -->
+    <div id="sosResult" style="display:none"></div>
+
+    <!-- Live map (shown after SOS sent) -->
+    <div class="victim-map-wrap" id="victimMapWrap" style="display:none">
+      <div class="vmap-header">
+        <span class="vmap-title">🗺️ Live Rescue Map</span>
+        <span class="vmap-sub" id="vmapSub">Locating ambulance...</span>
+      </div>
+      <div id="victimMap"></div>
+      <div class="vmap-legend">
+        <div class="vleg"><div class="vleg-dot" style="background:#ef4444"></div> You</div>
+        <div class="vleg"><div class="vleg-dot" style="background:#22c55e"></div> Hospital</div>
+        <div class="vleg"><div class="vleg-dot" style="background:#3b82f6"></div> Ambulance</div>
+        <div class="vleg vleg-route"><div style="width:20px;height:3px;background:#22c55e;border-radius:2px"></div> Route</div>
+      </div>
+      <!-- ETA bar -->
+      <div class="eta-bar" id="etaBar" style="display:none">
+        <div class="eta-icon">🚑</div>
+        <div class="eta-info">
+          <div class="eta-label">Ambulance En Route</div>
+          <div class="eta-progress-wrap">
+            <div class="eta-progress" id="etaProgress"></div>
+          </div>
+        </div>
+        <div class="eta-num" id="etaNum">—</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/victim.js') }}?v=3.0"></script>
+</body>
+</html>

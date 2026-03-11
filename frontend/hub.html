@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoSecure Chennai — Disaster AI Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060c18;--surface:rgba(10,18,35,0.85);--border:rgba(255,255,255,0.08);
+  --blue:#3b82f6;--text:#e2e8f0;--muted:#94a3b8;
+  --safe:#22c55e;--watch:#f59e0b;--high:#f97316;--critical:#ef4444;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;color:var(--text);position:relative}
+
+/* ── Full-screen map ── */
+#map{position:fixed;inset:0;z-index:0}
+
+/* Dark overlay on map so text is readable */
+.map-overlay{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(
+    135deg,
+    rgba(4,9,20,0.82) 0%,
+    rgba(4,9,20,0.55) 50%,
+    rgba(4,9,20,0.75) 100%
+  );
+}
+
+/* ── UI layer ── */
+.ui{position:fixed;inset:0;z-index:2;display:flex;flex-direction:column}
+
+/* NAV */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 28px;
+  background:linear-gradient(to bottom,rgba(4,9,20,0.9),transparent);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brand-icon{
+  width:38px;height:38px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 20px rgba(59,130,246,0.4);flex-shrink:0;
+}
+.brand-name{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:-0.3px}
+.brand-name span{color:#3b82f6}
+.nav-right{display:flex;align-items:center;gap:10px}
+.loc-pill{
+  display:flex;align-items:center;gap:7px;padding:6px 14px;
+  background:rgba(10,18,35,0.7);backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-radius:20px;font-size:0.78rem;color:var(--muted);
+}
+.loc-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.loc-dot.active{background:#22c55e;animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.5)}}
+
+/* ── CENTER CONTENT ── */
+.center{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:20px;text-align:center;
+  pointer-events:none;
+}
+.tagline-small{
+  font-size:0.72rem;text-transform:uppercase;letter-spacing:3px;
+  color:var(--blue);font-weight:600;margin-bottom:14px;
+  text-shadow:0 0 20px rgba(59,130,246,0.6);
+}
+.headline{
+  font-family:'Syne',sans-serif;font-size:clamp(2.4rem,5vw,3.8rem);
+  font-weight:800;line-height:1.05;margin-bottom:16px;
+  text-shadow:0 2px 20px rgba(0,0,0,0.8);
+}
+.headline span{color:#3b82f6}
+.sub{
+  color:var(--muted);font-size:clamp(0.88rem,1.5vw,1rem);
+  max-width:480px;line-height:1.6;margin-bottom:0;
+  text-shadow:0 1px 8px rgba(0,0,0,0.8);
+}
+
+/* ── RISK BANNER ── */
+.risk-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 20px;border-radius:40px;
+  background:rgba(10,18,35,0.75);backdrop-filter:blur(12px);
+  border:1px solid var(--border);font-size:0.85rem;font-weight:600;
+  margin-bottom:32px;pointer-events:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.rb-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:pulse-dot 2s infinite;flex-shrink:0}
+.rb-label{color:var(--muted);font-weight:400}
+.rb-value{font-family:'Syne',sans-serif;font-weight:800;font-size:0.9rem}
+.rb-conf{color:var(--muted);font-size:0.78rem}
+
+/* ── CARDS — 3 cards layout ── */
+.cards{
+  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+  pointer-events:auto;
+}
+.card{
+  background:rgba(10,18,35,0.78);backdrop-filter:blur(14px);
+  border:1px solid var(--border);border-radius:18px;
+  padding:26px 24px;width:240px;text-decoration:none;color:var(--text);
+  transition:all 0.25s ease;position:relative;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.card::before{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.25s;border-radius:18px;
+}
+.card:hover{transform:translateY(-5px);border-color:rgba(59,130,246,0.4);
+  box-shadow:0 20px 50px rgba(0,0,0,0.5)}
+.card:hover::before{opacity:1}
+/* Card 1 — Prediction (blue) */
+.card-1::before{background:linear-gradient(135deg,rgba(59,130,246,0.12),transparent)}
+.card-1:hover{border-color:rgba(59,130,246,0.5)}
+/* Card 2 — User SOS (red) */
+.card-2::before{background:linear-gradient(135deg,rgba(239,68,68,0.12),transparent)}
+.card-2:hover{border-color:rgba(239,68,68,0.4)}
+/* Card 3 — Admin (green) */
+.card-3::before{background:linear-gradient(135deg,rgba(34,197,94,0.12),transparent)}
+.card-3:hover{border-color:rgba(34,197,94,0.4)}
+
+.card-icon{
+  width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;margin-bottom:16px;
+}
+.ci-blue{background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.3)}
+.ci-red{background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.3)}
+.ci-green{background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.3)}
+
+.card-phase{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);
+  font-weight:600;margin-bottom:5px}
+.card-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:8px}
+.card-desc{color:var(--muted);font-size:0.78rem;line-height:1.55;margin-bottom:0}
+.card-arrow{
+  position:absolute;top:20px;right:20px;width:28px;height:28px;
+  background:rgba(255,255,255,0.06);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  transition:all 0.25s;
+}
+.card-1:hover .card-arrow{background:var(--blue);transform:translateX(2px)}
+.card-2:hover .card-arrow{background:#ef4444;transform:translateX(2px)}
+.card-3:hover .card-arrow{background:#22c55e;transform:translateX(2px)}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{
+  padding:14px 28px;
+  background:linear-gradient(to top,rgba(4,9,20,0.9),transparent);
+  display:flex;align-items:center;justify-content:center;
+  gap:6px;font-size:0.75rem;color:var(--muted);
+  pointer-events:none;
+}
+.bottom-bar b{color:var(--blue)}
+
+/* ── USER LOCATION MARKER ── */
+.user-marker-dot{
+  width:18px;height:18px;border-radius:50%;
+  background:#3b82f6;border:3px solid white;
+  box-shadow:0 0 0 4px rgba(59,130,246,0.3),0 4px 12px rgba(0,0,0,0.5);
+  animation:loc-pulse 2.5s infinite;
+}
+@keyframes loc-pulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(59,130,246,0.3),0 4px 12px rgba(0,0,0,0.5)}
+  50%{box-shadow:0 0 0 10px rgba(59,130,246,0.1),0 4px 12px rgba(0,0,0,0.5)}
+}
+
+/* ── Leaflet dark tiles tweak ── */
+.leaflet-tile{filter:brightness(0.55) saturate(0.7) hue-rotate(200deg)}
+.leaflet-control-attribution{display:none}
+.leaflet-control-zoom{display:none}
+
+@media(max-width:700px){
+  .cards{flex-direction:column;align-items:center}
+  .card{width:100%;max-width:320px}
+  .headline{font-size:2rem}
+  .nav-right .loc-pill span:not(.loc-dot){display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LIVE MAP BACKGROUND -->
+<div id="map"></div>
+<div class="map-overlay"></div>
+
+<!-- UI LAYER -->
+<div class="ui">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">🛡️</div>
+      <div class="brand-name">Geo<span>Secure</span></div>
+    </a>
+    <div class="nav-right">
+      <div class="loc-pill">
+        <div class="loc-dot" id="locDot"></div>
+        <span id="locText">Locating...</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="tagline-small">Chennai · AI Disaster Response Platform</div>
+    <h1 class="headline">Predict. Respond.<br><span>Recover.</span></h1>
+    <p class="sub">72-hour flood and earthquake forecasting powered by deep learning — keeping Chennai safe before, during, and after a disaster.</p>
+
+    <!-- Risk badge -->
+    <div class="risk-banner" id="riskBanner" style="margin-top:24px">
+      <div class="rb-dot" id="rbDot"></div>
+      <span class="rb-label">Live Risk:</span>
+      <span class="rb-value" id="rbValue">Loading...</span>
+      <span class="rb-conf" id="rbConf"></span>
+    </div>
+
+    <!-- 3 Cards -->
+    <div class="cards">
+
+      <!-- Card 1: Prediction Engine -->
+      <a href="/pre-disaster" class="card card-1">
+        <div class="card-arrow">→</div>
+        <div class="card-icon ci-blue">🔮</div>
+        <div class="card-phase">Phase 01 · Pre-Disaster</div>
+        <div class="card-title">Prediction Engine</div>
+        <div class="card-desc">72-hour AI flood forecast with live weather monitoring and earthquake detection</div>
+      </a>
+
+      <!-- Card 2: User Login → SOS -->
+      <a href="/user/login" class="card card-2">
+        <div class="card-arrow">→</div>
+        <div class="card-icon ci-red">🚨</div>
+        <div class="card-phase">Phase 02 · During-Disaster</div>
+        <div class="card-title">Emergency SOS</div>
+        <div class="card-desc">Login to send one-tap SOS with live GPS, priority triage and shelter access</div>
+      </a>
+
+      <!-- Card 3: Admin Login → Admin Hub -->
+      <a href="/user/login" class="card card-3">
+        <div class="card-arrow">→</div>
+        <div class="card-icon ci-green">🗺️</div>
+        <div class="card-phase">Admin · Control Room</div>
+        <div class="card-title">Admin Dashboard</div>
+        <div class="card-desc">Rescue dispatch, open shelter management, road blocks and recovery command</div>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-bar">
+    Built for <b>Chennai</b> · CNN-BiLSTM · 96,432 hours of training data · 86% accuracy · 94% critical recall
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ── Map init — centered on Chennai ───────────────────────────
+const map = L.map('map', {
+  zoomControl: false,
+  dragging: false,
+  scrollWheelZoom: false,
+  doubleClickZoom: false,
+  touchZoom: false,
+  keyboard: false,
+  attributionControl: false
+}).setView([13.08, 80.27], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+// ── User location ─────────────────────────────────────────────
+let userMarker = null;
+
+function setLocText(txt, active) {
+  const dot  = document.getElementById('locDot');
+  const text = document.getElementById('locText');
+  if (text) text.textContent = txt;
+  if (dot)  { if (active) dot.classList.add('active'); else dot.classList.remove('active'); }
+}
+
+if (navigator.geolocation) {
+  setLocText('Detecting...', false);
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      map.flyTo([lat, lng], 13, { duration: 2.5 });
+
+      const icon = L.divIcon({
+        html: '<div class="user-marker-dot"></div>',
+        className: '',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+
+      userMarker = L.marker([lat, lng], { icon })
+        .addTo(map)
+        .bindPopup('<b>📍 Your Location</b><br>GeoSecure is monitoring your area')
+        .openPopup();
+
+      setLocText(`${lat.toFixed(4)}, ${lng.toFixed(4)}`, true);
+    },
+    err => {
+      setLocText('Chennai, TN', true);
+      document.getElementById('locDot').style.background = '#f59e0b';
+      document.getElementById('locDot').classList.add('active');
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+} else {
+  setLocText('Chennai, TN', true);
+}
+
+// ── Risk level fetch ──────────────────────────────────────────
+const RISK_COLORS = {
+  'SAFE': '#22c55e',
+  'WATCH': '#f59e0b',
+  'HIGH RISK': '#f97316',
+  'CRITICAL': '#ef4444'
+};
+
+async function loadRisk() {
+  try {
+    const d = await fetch('/api/predict').then(r => r.json());
+    const color = d.color || RISK_COLORS[d.risk_level] || '#64748b';
+    document.getElementById('rbDot').style.background   = color;
+    document.getElementById('rbValue').textContent       = d.risk_level;
+    document.getElementById('rbValue').style.color       = color;
+    document.getElementById('rbConf').textContent        = `· ${d.confidence}% confidence`;
+
+    if (d.risk_level === 'CRITICAL') {
+      document.querySelector('.map-overlay').style.background =
+        'linear-gradient(135deg,rgba(40,4,4,0.82) 0%,rgba(20,4,4,0.55) 50%,rgba(30,4,4,0.75) 100%)';
+    }
+  } catch(e) {
+    document.getElementById('rbValue').textContent = 'Offline';
+  }
+}
+loadRisk();
+setInterval(loadRisk, 60000);
+</script>
+</body>
+</html>

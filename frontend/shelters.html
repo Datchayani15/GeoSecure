@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoSecure — Open Shelters</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060c18;--surface:#0d1526;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --blue:#3b82f6;--teal:#14b8a6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --font:"DM Sans",sans-serif;--head:"Syne",sans-serif;
+}
+html,body{min-height:100vh}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;display:flex;flex-direction:column}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(20,184,166,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(20,184,166,0.03) 1px,transparent 1px);
+  background-size:60px 60px}
+
+/* NAV */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:58px;
+  background:rgba(6,12,24,0.96);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brand-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 0 20px rgba(59,130,246,0.35);
+}
+.brand-name{font-family:var(--head);font-size:1.05rem;font-weight:800}
+.brand-name span{color:#3b82f6}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-link{
+  padding:6px 14px;border-radius:8px;font-size:0.8rem;font-weight:500;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:var(--muted2);text-decoration:none;transition:.15s;
+}
+.nav-link:hover{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.3);color:#93c5fd}
+.nav-link.danger:hover{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#f87171}
+
+/* PAGE */
+.page{max-width:1280px;margin:0 auto;padding:28px 24px;width:100%;position:relative;z-index:1;flex:1}
+
+/* HEADER */
+.page-kicker{
+  display:inline-block;font-size:0.6rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:#5eead4;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.2);
+  border-radius:20px;padding:3px 12px;margin-bottom:10px;
+}
+.page-title{font-family:var(--head);font-size:2rem;font-weight:800;margin-bottom:6px;line-height:1.1}
+.page-title span{color:var(--teal)}
+.page-sub{color:var(--muted);font-size:0.85rem;margin-bottom:22px;max-width:560px}
+
+/* SUCCESS BANNER */
+.assign-banner{
+  display:none;align-items:center;gap:14px;
+  background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);
+  border-radius:14px;padding:16px 20px;margin-bottom:22px;
+}
+.assign-banner.show{display:flex}
+.banner-icon{font-size:2rem;flex-shrink:0}
+.banner-title{font-family:var(--head);font-size:0.95rem;font-weight:700;color:#4ade80;margin-bottom:2px}
+.banner-sub{font-size:0.8rem;color:var(--muted)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+@media(max-width:640px){.stats-grid{grid-template-columns:1fr 1fr}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.stat-num{font-family:var(--head);font-size:1.8rem;font-weight:800;color:var(--teal);line-height:1}
+.stat-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:4px}
+
+/* CONTROLS */
+.controls{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.search-input{
+  flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;padding:9px 14px;color:var(--text);font-family:var(--font);font-size:0.85rem;
+  outline:none;transition:.15s;
+}
+.search-input:focus{border-color:var(--teal)}
+.filter-btn{
+  padding:7px 14px;border-radius:9px;font-size:0.8rem;font-weight:600;cursor:pointer;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:.15s;
+}
+.filter-btn.active,.filter-btn:hover{
+  background:rgba(20,184,166,0.12);border-color:rgba(20,184,166,0.35);color:#5eead4;
+}
+
+/* LAYOUT: list + map */
+.main-layout{display:grid;grid-template-columns:1fr 440px;gap:20px;align-items:start}
+@media(max-width:960px){.main-layout{grid-template-columns:1fr}}
+
+/* SHELTER LIST */
+.shelter-list{
+  display:flex;flex-direction:column;gap:10px;
+  max-height:calc(100vh - 310px);overflow-y:auto;padding-right:4px;
+}
+.shelter-list::-webkit-scrollbar{width:3px}
+.shelter-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+
+.shelter-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:16px 18px;cursor:pointer;transition:.18s;
+}
+.shelter-card:hover{border-color:var(--border2);box-shadow:0 6px 24px rgba(0,0,0,0.35)}
+.shelter-card.selected{
+  border-color:rgba(20,184,166,0.5);
+  box-shadow:0 0 0 1px rgba(20,184,166,0.2),0 6px 24px rgba(0,0,0,0.35);
+}
+.sc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.sc-name{font-family:var(--head);font-size:0.93rem;font-weight:700}
+.sc-addr{font-size:0.75rem;color:var(--muted);margin-bottom:8px}
+.sc-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.badge{
+  font-size:0.62rem;padding:2px 8px;border-radius:6px;font-weight:700;
+  border:1px solid;text-transform:uppercase;letter-spacing:0.3px;
+}
+.badge-status-active{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#4ade80}
+.badge-status-critical{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.25);color:#f87171}
+.badge-med{background:rgba(59,130,246,0.1);border-color:rgba(59,130,246,0.25);color:#93c5fd}
+.badge-food{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#4ade80}
+.badge-water{background:rgba(20,184,166,0.1);border-color:rgba(20,184,166,0.25);color:#5eead4}
+.badge-power{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#fbbf24}
+.sc-occ-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.occ-bar{flex:1;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden}
+.occ-fill{height:100%;border-radius:3px;transition:.4s}
+.occ-text{font-size:0.72rem;color:var(--muted);white-space:nowrap}
+.sc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sc-dist{font-size:0.72rem;color:var(--muted)}
+.assign-btn{
+  padding:7px 16px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;
+  border:1px solid rgba(20,184,166,0.35);background:rgba(20,184,166,0.1);
+  color:#5eead4;transition:.15s;white-space:nowrap;
+}
+.assign-btn:hover{background:rgba(20,184,166,0.22);border-color:rgba(20,184,166,0.55)}
+.assign-btn.done{
+  background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);
+  color:#4ade80;cursor:default;pointer-events:none;
+}
+
+/* MAP PANEL */
+.map-panel{border-radius:14px;overflow:hidden;border:1px solid var(--border);position:sticky;top:78px}
+.map-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.map-title{font-family:var(--head);font-size:0.85rem;font-weight:700}
+.map-hint{font-size:0.72rem;color:var(--muted)}
+#shelterMap{height:400px;width:100%}
+
+/* ROUTE INFO BAR */
+.route-bar{
+  display:none;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:11px 16px;background:var(--surface);border-top:1px solid var(--border);
+}
+.route-bar.visible{display:flex}
+.route-stat{display:flex;flex-direction:column;gap:2px}
+.route-val{font-family:var(--head);font-size:1rem;font-weight:800;color:var(--teal)}
+.route-lbl{font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px}
+.route-divider{width:1px;height:28px;background:var(--border)}
+
+/* SMART ASSIGN BAR */
+.smart-assign-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:linear-gradient(135deg,rgba(20,184,166,0.08),rgba(59,130,246,0.06));
+  border:1px solid rgba(20,184,166,0.25);border-radius:14px;
+  padding:16px 20px;margin-bottom:14px;
+}
+.sa-left{display:flex;align-items:center;gap:14px}
+.sa-icon{font-size:1.6rem;flex-shrink:0}
+.sa-title{font-family:var(--head);font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:2px}
+.sa-sub{font-size:0.75rem;color:var(--muted)}
+.sa-btn{
+  padding:10px 20px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;
+  border:1px solid rgba(20,184,166,0.4);background:rgba(20,184,166,0.15);
+  color:#5eead4;transition:.15s;white-space:nowrap;font-family:var(--font);flex-shrink:0;
+}
+.sa-btn:hover{background:rgba(20,184,166,0.28);border-color:rgba(20,184,166,0.6)}
+.sa-btn:disabled{opacity:0.5;cursor:not-allowed}
+.sa-btn.done{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.35);color:#4ade80;pointer-events:none}
+
+/* SMART RESULT CARD */
+.smart-result{
+  background:var(--surface);border:1px solid rgba(20,184,166,0.35);
+  border-radius:14px;padding:18px 20px;margin-bottom:14px;
+}
+.sr-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sr-icon{width:40px;height:40px;border-radius:50%;background:rgba(20,184,166,0.15);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.sr-title{font-family:var(--head);font-size:1rem;font-weight:800;color:var(--text)}
+.sr-sub{font-size:0.75rem;color:var(--muted);margin-top:2px}
+.sr-scores{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.score-pill{
+  padding:5px 12px;border-radius:20px;font-size:0.72rem;font-weight:600;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);
+  display:flex;align-items:center;gap:5px;
+}
+.score-pill .sp-val{color:var(--text);font-weight:700}
+.sr-route-btn{
+  width:100%;padding:10px;border-radius:10px;font-size:0.82rem;font-weight:700;cursor:pointer;
+  border:1px solid rgba(20,184,166,0.4);background:rgba(20,184,166,0.12);
+  color:#5eead4;transition:.15s;font-family:var(--font);margin-top:6px;
+}
+.sr-route-btn:hover{background:rgba(20,184,166,0.22)}
+
+/* LOADING / STATES */
+.loading-state{display:flex;align-items:center;justify-content:center;padding:50px;color:var(--muted)}
+.spinner{
+  width:18px;height:18px;border:2px solid rgba(20,184,166,0.15);
+  border-top-color:var(--teal);border-radius:50%;
+  animation:spin 0.7s linear infinite;margin-right:10px;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:40px;color:var(--muted)}
+.error-state{text-align:center;padding:40px;color:var(--red)}
+
+/* ── PAGE TABS ── */
+.page-tabs{
+  display:flex;border-bottom:1px solid var(--border);
+  background:rgba(6,12,24,0.9);backdrop-filter:blur(12px);
+  position:sticky;top:58px;z-index:90;padding:0 28px;
+}
+.tab-btn{
+  padding:13px 20px;font-family:var(--font);font-size:0.82rem;font-weight:600;
+  cursor:pointer;border:none;background:transparent;color:var(--muted);
+  border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── FORMS ── */
+.section-kicker{display:inline-block;font-size:0.6rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#5eead4;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.2);border-radius:20px;padding:3px 12px;margin-bottom:10px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+@media(max-width:820px){.two-col{grid-template-columns:1fr}}
+.form-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.form-panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);}
+.form-panel-title{font-family:var(--head);font-size:0.88rem;font-weight:700}
+.form-panel-body{padding:18px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.full{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:0.67rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600}
+.form-input,.form-select,.form-textarea{background:#060c18;border:1px solid rgba(255,255,255,0.08);border-radius:9px;padding:9px 13px;color:var(--text);font-family:var(--font);font-size:0.85rem;outline:none;transition:.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:rgba(20,184,166,0.5);box-shadow:0 0 0 3px rgba(20,184,166,0.07)}
+.form-select option{background:var(--surface)}
+.form-textarea{resize:vertical;min-height:75px}
+.sev-picker{display:flex;gap:6px}
+.sev-opt{flex:1;padding:7px 5px;border:1px solid var(--border);border-radius:8px;text-align:center;cursor:pointer;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;transition:all .15s;color:var(--muted);background:transparent;}
+.sev-opt.sel[data-v="low"]     {background:rgba(34,197,94,0.12);border-color:var(--green);color:var(--green)}
+.sev-opt.sel[data-v="medium"]  {background:rgba(245,158,11,0.12);border-color:var(--amber);color:var(--amber)}
+.sev-opt.sel[data-v="high"]    {background:rgba(249,115,22,0.12);border-color:#f97316;color:#f97316}
+.sev-opt.sel[data-v="critical"]{background:rgba(239,68,68,0.13);border-color:var(--red);color:var(--red)}
+.photo-drop{border:1px dashed rgba(20,184,166,0.3);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:.18s;color:var(--muted);font-size:0.8rem;}
+.photo-drop:hover{border-color:rgba(20,184,166,0.55);background:rgba(20,184,166,0.03)}
+.photo-drop .drop-icon{font-size:20px;margin-bottom:5px;display:block}
+.btn-submit{width:100%;padding:10px;border-radius:9px;font-family:var(--font);font-size:0.84rem;font-weight:700;border:1px solid;cursor:pointer;transition:.15s;margin-top:4px;}
+.btn-teal  {background:rgba(20,184,166,0.13);color:#5eead4;border-color:rgba(20,184,166,0.3)}
+.btn-teal:hover{background:rgba(20,184,166,0.22);border-color:rgba(20,184,166,0.5)}
+.btn-amber {background:rgba(245,158,11,0.12);color:#fbbf24;border-color:rgba(245,158,11,0.28)}
+.btn-amber:hover{background:rgba(245,158,11,0.2);border-color:rgba(245,158,11,0.45)}
+.btn-small{padding:4px 12px;font-size:0.74rem;border-radius:8px;font-family:var(--font);font-weight:600;cursor:pointer;border:1px solid;transition:.15s;}
+
+/* ── HISTORY CARDS ── */
+.history-list{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.history-empty{text-align:center;padding:28px;color:var(--muted);font-size:0.8rem}
+.history-item{background:#060c18;border:1px solid var(--border);border-radius:11px;padding:13px 15px}
+.hi-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hi-title{font-family:var(--head);font-size:0.86rem;font-weight:700}
+.hi-sub{font-size:0.74rem;color:var(--muted2)}
+.hi-amount{font-family:var(--head);font-size:1.1rem;font-weight:800;color:var(--teal);margin:3px 0}
+.badge-pending {background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.25);color:#fbbf24}
+.badge-approved{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#4ade80}
+.badge-verified{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.25);color:#4ade80}
+.badge-rejected{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.25);color:#f87171}
+
+/* ── STATUS PANEL ── */
+.status-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:22px}
+.sp-title{font-family:var(--head);font-size:0.85rem;font-weight:700;color:var(--teal);margin-bottom:14px}
+.sp-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.82rem;}
+.sp-row:last-child{border-bottom:none}
+.sp-key{color:var(--muted)}
+.sp-val{font-weight:600}
+
+/* TOAST */
+.toast-area{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:11px 16px;font-size:0.82rem;display:flex;align-items:center;gap:10px;
+  min-width:230px;box-shadow:0 20px 40px rgba(0,0,0,0.4);animation:toastin 0.22s ease;
+}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+@keyframes toastin{from{opacity:0;transform:translateY(8px)}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="brand-icon">&#128737;</div>
+    <div class="brand-name">Geo<span>Secure</span></div>
+  </a>
+  <div class="nav-right">
+    <a href="/victim" class="nav-link">&#8592; Back to SOS</a>
+    <a href="/user/logout" class="nav-link danger">Sign Out</a>
+  </div>
+</nav>
+
+<!-- TAB BAR -->
+<div class="page-tabs">
+  <button class="tab-btn active" onclick="switchTab('shelters',this)">&#127968; Open Shelters</button>
+  <button class="tab-btn"        onclick="switchTab('aid',this)">&#128176; Apply for Aid</button>
+  <button class="tab-btn"        onclick="switchTab('damage',this)">&#128203; Report Damage</button>
+  <button class="tab-btn"        onclick="switchTab('status',this)">&#128202; My Status</button>
+</div>
+
+<div class="page">
+
+<!-- ═══════════════════════════════ TAB 1 — SHELTERS ═══════════════════════════════ -->
+<div class="tab-pane active" id="tab-shelters">
+
+  <div class="page-kicker">Phase 03 &middot; Open Shelters</div>
+  <h1 class="page-title">Available <span>Shelters</span></h1>
+  <p class="page-sub">GeoSecure automatically finds your optimal shelter based on distance, capacity, and current disaster risk. Or browse and choose one manually.</p>
+
+  <!-- Smart assign banner -->
+  <div class="smart-assign-bar" id="smartAssignBar">
+    <div class="sa-left">
+      <span class="sa-icon">🧠</span>
+      <div>
+        <div class="sa-title">Smart Shelter Assignment</div>
+        <div class="sa-sub">Algorithm selects the safest shelter — balancing distance, available beds, and flood risk level</div>
+      </div>
+    </div>
+    <button class="sa-btn" id="smartAssignBtn" onclick="doSmartAssign()">⚡ Auto-Assign Me</button>
+  </div>
+
+  <!-- Smart assign result card -->
+  <div class="smart-result" id="smartResult" style="display:none"></div>
+
+  <!-- Assignment success banner -->
+  <div class="assign-banner" id="assignBanner">
+    <div class="banner-icon">&#127968;</div>
+    <div>
+      <div class="banner-title" id="bannerTitle">You have been assigned to a shelter</div>
+      <div class="banner-sub">The route is shown on the map below. Follow it to reach your shelter safely.</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="statTotal">&#8212;</div><div class="stat-lbl">Total Shelters</div></div>
+    <div class="stat-card"><div class="stat-num" id="statActive">&#8212;</div><div class="stat-lbl">Active</div></div>
+    <div class="stat-card"><div class="stat-num" id="statBeds">&#8212;</div><div class="stat-lbl">Available Beds</div></div>
+    <div class="stat-card"><div class="stat-num" id="statOcc">&#8212;</div><div class="stat-lbl">Occupied</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <input id="searchInput" class="search-input" type="text" placeholder="Search by shelter name or area...">
+    <button class="filter-btn active" onclick="setFilter(this,'all')">All</button>
+    <button class="filter-btn" onclick="setFilter(this,'available')">Available</button>
+    <button class="filter-btn" onclick="setFilter(this,'medical')">&#127973; Medical</button>
+    <button class="filter-btn" onclick="setFilter(this,'near')">&#128205; Nearest First</button>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main-layout">
+
+    <!-- Shelter list -->
+    <div class="shelter-list" id="shelterList">
+      <div class="loading-state"><div class="spinner"></div>Loading shelters...</div>
+    </div>
+
+    <!-- Map panel -->
+    <div class="map-panel">
+      <div class="map-header">
+        <span class="map-title">&#128506; Route Map</span>
+        <span class="map-hint" id="mapHint">Select a shelter to see route</span>
+      </div>
+      <div id="shelterMap"></div>
+      <div class="route-bar" id="routeBar">
+        <div class="route-stat">
+          <div class="route-val" id="routeDist">&#8212;</div>
+          <div class="route-lbl">Distance</div>
+        </div>
+        <div class="route-divider"></div>
+        <div class="route-stat">
+          <div class="route-val" id="routeTime">&#8212;</div>
+          <div class="route-lbl">Walk Time</div>
+        </div>
+        <div class="route-divider"></div>
+        <div class="route-stat" style="flex:1;min-width:0">
+          <div class="route-val" id="routeName" style="font-size:0.78rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">&#8212;</div>
+          <div class="route-lbl">Destination</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-shelters -->
+
+<!-- ═══════════════════════════════ TAB 2 — AID ═══════════════════════════════ -->
+<div class="tab-pane" id="tab-aid">
+
+  <div class="section-kicker">Phase 03 &middot; Financial Relief</div>
+  <h1 class="page-title">Apply for <span>Aid</span></h1>
+  <p class="page-sub">Submit a claim for government relief funds. Your application will be reviewed by the recovery team.</p>
+
+  <div class="two-col">
+
+    <!-- Aid Claim Form -->
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <div class="form-panel-title">&#128176; New Aid Claim</div>
+      </div>
+      <div class="form-panel-body">
+        <form id="aidForm" onsubmit="submitAidClaim(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <select class="form-select" name="category" required>
+                <option value="">Select category&hellip;</option>
+                <option value="Housing Relief">Housing Relief</option>
+                <option value="Medical Expenses">Medical Expenses</option>
+                <option value="Food &amp; Essentials">Food &amp; Essentials</option>
+                <option value="Livelihood Support">Livelihood Support</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount Requested (&#8377;) *</label>
+              <input class="form-input" name="amount" type="number" min="1" placeholder="e.g. 5000" required>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" name="description" placeholder="Describe why you need this aid — damages, losses, medical needs&hellip;"></textarea>
+            </div>
+          </div>
+          <button type="submit" class="btn-submit btn-teal">&#128176; Submit Aid Claim</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- My Claims History -->
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <div class="form-panel-title">&#128196; My Previous Claims</div>
+        <button class="btn-small btn-teal" onclick="loadMyClaims()">&#8635; Refresh</button>
+      </div>
+      <div class="form-panel-body">
+        <div id="claimsList"><div class="history-empty">No claims submitted yet</div></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-aid -->
+
+<!-- ═══════════════════════════════ TAB 3 — DAMAGE ═══════════════════════════════ -->
+<div class="tab-pane" id="tab-damage">
+
+  <div class="section-kicker">Phase 03 &middot; Damage Reporting</div>
+  <h1 class="page-title">Report <span>Damage</span></h1>
+  <p class="page-sub">Submit damage reports in your area to help rescue teams prioritise resources. Attach a photo where possible.</p>
+
+  <div class="two-col">
+
+    <!-- Damage Report Form -->
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <div class="form-panel-title">&#128203; New Damage Report</div>
+      </div>
+      <div class="form-panel-body">
+        <form id="damageForm" onsubmit="submitDamageReport(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Your Name</label>
+              <input class="form-input" name="reporter_name" placeholder="Full name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location / Area *</label>
+              <input class="form-input" name="location" placeholder="Street, landmark, area&hellip;" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Damage Type *</label>
+              <select class="form-select" name="damage_type" required>
+                <option value="">Select type&hellip;</option>
+                <option value="Structural Collapse">Structural Collapse</option>
+                <option value="Road Damage">Road Damage</option>
+                <option value="Flooding">Flooding</option>
+                <option value="Power Outage">Power Outage</option>
+                <option value="Water Supply">Water Supply Disruption</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Severity</label>
+              <div class="sev-picker">
+                <div class="sev-opt" data-v="low">Low</div>
+                <div class="sev-opt sel" data-v="medium">Med</div>
+                <div class="sev-opt" data-v="high">High</div>
+                <div class="sev-opt" data-v="critical">Crit</div>
+              </div>
+              <input type="hidden" id="sevVal" name="severity" value="medium">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" name="description" placeholder="Describe what you see — extent of damage, people affected, road blocked&hellip;"></textarea>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label class="form-label">Photo (optional)</label>
+              <div class="photo-drop" id="photoDrop" onclick="document.getElementById('photoFile').click()">
+                <span class="drop-icon">&#128247;</span>
+                <span id="photoLabel">Tap to attach a photo</span>
+              </div>
+              <input type="file" id="photoFile" name="photo" accept="image/*" style="display:none"
+                onchange="document.getElementById('photoLabel').textContent=this.files[0]?this.files[0].name:'Tap to attach a photo'">
+            </div>
+          </div>
+          <button type="submit" class="btn-submit btn-amber">&#128228; Submit Damage Report</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- My Reports History -->
+    <div class="form-panel">
+      <div class="form-panel-head">
+        <div class="form-panel-title">&#128202; My Previous Reports</div>
+        <button class="btn-small btn-amber" onclick="loadMyReports()">&#8635; Refresh</button>
+      </div>
+      <div class="form-panel-body">
+        <div id="reportsList"><div class="history-empty">No reports submitted yet</div></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tab-damage -->
+
+<!-- ═══════════════════════════════ TAB 4 — MY STATUS ═══════════════════════════════ -->
+<div class="tab-pane" id="tab-status">
+
+  <div class="section-kicker">Phase 03 &middot; Recovery Status</div>
+  <h1 class="page-title">My <span>Status</span></h1>
+  <p class="page-sub">Track your shelter assignment and the outcome of your aid claims and damage reports.</p>
+
+  <!-- Recovery status overview -->
+  <div class="status-panel" id="statusPanel">
+    <div class="sp-title">&#9889; Recovery Overview</div>
+    <div id="statusRows">
+      <div class="sp-row"><span class="sp-key">Loading&hellip;</span></div>
+    </div>
+  </div>
+
+  <!-- Claims + Reports summary side by side -->
+  <div class="two-col">
+    <div class="form-panel">
+      <div class="form-panel-head"><div class="form-panel-title">&#128176; Aid Claims Summary</div></div>
+      <div class="form-panel-body">
+        <div id="statusClaimsList"><div class="history-empty">No claims yet</div></div>
+      </div>
+    </div>
+    <div class="form-panel">
+      <div class="form-panel-head"><div class="form-panel-title">&#128203; Damage Reports Summary</div></div>
+      <div class="form-panel-body">
+        <div id="statusReportsList"><div class="history-empty">No reports yet</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-status -->
+
+</div><!-- /page -->
+
+<div class="toast-area" id="toastArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+'use strict';
+
+var allShelters  = [];
+var activeFilter = 'all';
+var allPins      = [];
+var shelterPin   = null;
+var routeLayer   = null;
+var selectedId   = null;
+var assignedId   = null;
+var userLat      = 13.0827;
+var userLng      = 80.2707;
+var userPin      = null;
+var map;
+
+/* ─── MAP INIT ─────────────────────────────────────────────── */
+map = L.map('shelterMap', { zoomControl: true, attributionControl: false })
+        .setView([13.0827, 80.2707], 11);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 })
+  .addTo(map);
+
+// Dark map tint
+map.getContainer().style.filter = 'brightness(0.65) saturate(0.7) hue-rotate(190deg)';
+
+function makePin(color, size) {
+  size = size || 12;
+  return L.divIcon({
+    html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;' +
+          'background:' + color + ';border:2.5px solid #fff;' +
+          'box-shadow:0 0 0 3px ' + color + '55"></div>',
+    className: '', iconSize: [size, size], iconAnchor: [size/2, size/2]
+  });
+}
+
+/* ─── GEOLOCATION ──────────────────────────────────────────── */
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      userLat = pos.coords.latitude;
+      userLng = pos.coords.longitude;
+      userPin = L.marker([userLat, userLng], { icon: makePin('#3b82f6', 13) })
+                  .addTo(map)
+                  .bindPopup('<b>Your Location</b>');
+      map.setView([userLat, userLng], 12);
+      loadShelters();
+    },
+    function() { loadShelters(); },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+} else {
+  loadShelters();
+}
+
+/* ─── LOAD SHELTERS ────────────────────────────────────────── */
+function loadShelters() {
+  var url = '/api/user/nearby-shelters?lat=' + userLat + '&lng=' + userLng;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      allShelters = data;
+      updateStats();
+      renderCards();
+      paintMapPins();
+    })
+    .catch(function() {
+      document.getElementById('shelterList').innerHTML =
+        '<div class="error-state">Failed to load shelters. Please refresh.</div>';
+    });
+}
+
+/* ─── STATS ────────────────────────────────────────────────── */
+function updateStats() {
+  var active = allShelters.filter(function(s) { return s.status !== 'closed'; });
+  var beds   = active.reduce(function(a, s) { return a + (s.total_capacity - s.current_occupancy); }, 0);
+  var occ    = active.reduce(function(a, s) { return a + s.current_occupancy; }, 0);
+  document.getElementById('statTotal').textContent  = allShelters.length;
+  document.getElementById('statActive').textContent = active.length;
+  document.getElementById('statBeds').textContent   = beds;
+  document.getElementById('statOcc').textContent    = occ;
+}
+
+/* ─── FILTER ───────────────────────────────────────────────── */
+function setFilter(btn, f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderCards();
+}
+
+/* ─── RENDER CARDS ─────────────────────────────────────────── */
+function renderCards() {
+  var q = document.getElementById('searchInput').value.toLowerCase();
+  var list = allShelters.slice();
+
+  if (activeFilter === 'available') {
+    list = list.filter(function(s) { return (s.total_capacity - s.current_occupancy) > 0; });
+  }
+  if (activeFilter === 'medical') {
+    list = list.filter(function(s) { return s.has_medical; });
+  }
+  if (activeFilter === 'near') {
+    list = list.filter(function(s) { return s.distance_km != null; });
+    list.sort(function(a, b) { return a.distance_km - b.distance_km; });
+  }
+  if (q) {
+    list = list.filter(function(s) {
+      return s.name.toLowerCase().indexOf(q) !== -1 ||
+             (s.address || '').toLowerCase().indexOf(q) !== -1;
+    });
+  }
+
+  if (!list.length) {
+    document.getElementById('shelterList').innerHTML =
+      '<div class="empty-state">No shelters match your search.</div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < list.length; i++) {
+    var s    = list[i];
+    var pct  = s.total_capacity > 0 ? Math.round(s.current_occupancy / s.total_capacity * 100) : 0;
+    var col  = pct >= 90 ? '#ef4444' : pct >= 65 ? '#f59e0b' : '#22c55e';
+    var free = s.total_capacity - s.current_occupancy;
+    var dist = s.distance_km != null ? s.distance_km + ' km away' : '';
+    var stCls = s.status === 'active' ? 'badge-status-active' : 'badge-status-critical';
+    var isSel = selectedId === s.id ? ' selected' : '';
+    var isDone = assignedId === s.id;
+
+    var amenityBadges = '';
+    if (s.has_medical) amenityBadges += '<span class="badge badge-med">Medical</span>';
+    if (s.has_food)    amenityBadges += '<span class="badge badge-food">Food</span>';
+    if (s.has_water)   amenityBadges += '<span class="badge badge-water">Water</span>';
+    if (s.has_power)   amenityBadges += '<span class="badge badge-power">Power</span>';
+
+    var sname_escaped = s.name.replace(/\'/g, "\\'");
+    var assignBtn = isDone
+      ? '<button class="assign-btn done">&#10003; Assigned</button>'
+      : '<button class="assign-btn" onclick="doAssign(event,' + s.id + ',\'' + sname_escaped + '\')">Assign Me</button>';
+
+    html += '<div class="shelter-card' + isSel + '" id="sc-' + s.id + '" onclick="selectShelter(' + s.id + ')">'
+          + '<div class="sc-head">'
+          +   '<div class="sc-name">' + s.name + '</div>'
+          +   '<span class="badge ' + stCls + '">' + s.status + '</span>'
+          + '</div>'
+          + '<div class="sc-addr">&#128205; ' + (s.address || 'Tamil Nadu') + '</div>'
+          + (amenityBadges ? '<div class="sc-badges">' + amenityBadges + '</div>' : '')
+          + '<div class="sc-occ-row">'
+          +   '<div class="occ-bar"><div class="occ-fill" style="width:' + pct + '%;background:' + col + '"></div></div>'
+          +   '<div class="occ-text">' + s.current_occupancy + '/' + s.total_capacity + ' (' + free + ' free)</div>'
+          + '</div>'
+          + '<div class="sc-foot">'
+          +   '<span class="sc-dist">' + dist + '</span>'
+          +   assignBtn
+          + '</div>'
+          + '</div>';
+  }
+  document.getElementById('shelterList').innerHTML = html;
+}
+
+/* ─── SELECT SHELTER → SHOW ROUTE ON MAP ───────────────────── */
+function selectShelter(sid) {
+  var shelter = null;
+  for (var i = 0; i < allShelters.length; i++) {
+    if (allShelters[i].id === sid) { shelter = allShelters[i]; break; }
+  }
+  if (!shelter) return;
+  selectedId = sid;
+
+  // Highlight card
+  document.querySelectorAll('.shelter-card').forEach(function(el) { el.classList.remove('selected'); });
+  var card = document.getElementById('sc-' + sid);
+  if (card) { card.classList.add('selected'); card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+  if (!shelter.latitude || !shelter.longitude) return;
+
+  // Clear old map layers
+  if (routeLayer)  { routeLayer.remove();  routeLayer  = null; }
+  if (shelterPin)  { shelterPin.remove();  shelterPin  = null; }
+
+  // Add shelter pin
+  shelterPin = L.marker([shelter.latitude, shelter.longitude], { icon: makePin('#14b8a6', 13) })
+    .addTo(map)
+    .bindPopup('<b>' + shelter.name + '</b><br>' + (shelter.address || '') + '<br>Free beds: ' + (shelter.total_capacity - shelter.current_occupancy))
+    .openPopup();
+
+  // Straight-line fallback route while OSRM loads
+  routeLayer = L.polyline([[userLat, userLng], [shelter.latitude, shelter.longitude]], {
+    color: '#14b8a6', weight: 3, opacity: 0.7, dashArray: '8 6'
+  }).addTo(map);
+  map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+
+  // Show route bar
+  document.getElementById('routeBar').classList.add('visible');
+  document.getElementById('mapHint').textContent  = 'Route to: ' + shelter.name;
+  document.getElementById('routeName').textContent = shelter.name;
+  if (shelter.distance_km != null) {
+    document.getElementById('routeDist').textContent = shelter.distance_km + ' km';
+    document.getElementById('routeTime').textContent = Math.round(shelter.distance_km / 5 * 60) + ' min';
+  }
+
+  // Try OSRM for a real walking route
+  var osrmUrl = 'https://router.project-osrm.org/route/v1/walking/'
+    + userLng + ',' + userLat + ';'
+    + shelter.longitude + ',' + shelter.latitude
+    + '?overview=full&geometries=geojson';
+
+  fetch(osrmUrl)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.routes || !data.routes.length) return;
+      var route  = data.routes[0];
+      var coords = route.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+
+      if (routeLayer) routeLayer.remove();
+      routeLayer = L.polyline(coords, { color: '#14b8a6', weight: 4, opacity: 0.9 }).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+
+      document.getElementById('routeDist').textContent = (route.distance / 1000).toFixed(1) + ' km';
+      document.getElementById('routeTime').textContent = Math.round(route.duration / 60) + ' min';
+    })
+    .catch(function() { /* keep straight-line fallback */ });
+}
+
+/* ─── ASSIGN ME ────────────────────────────────────────────── */
+/* ─── SMART AUTO-ASSIGN ─────────────────────────────────────── */
+function doSmartAssign() {
+  var btn = document.getElementById('smartAssignBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Finding optimal shelter...';
+
+  // Step 1: ensure victim record exists
+  fetch('/api/user/recovery-sos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ priority: 'NORMAL', latitude: userLat, longitude: userLng })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.id) throw new Error(d.error || 'Could not create victim record');
+    // Step 2: call smart assignment algorithm
+    return fetch('/api/user/smart-assign-shelter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: userLat, longitude: userLng })
+    });
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.success) throw new Error(d.error || 'Smart assignment failed');
+
+    var s = d.shelter;
+    var sb = d.score_breakdown || {};
+    assignedId = s.id;
+
+    // Risk colour
+    var riskColor = { SAFE:'#22c55e', WATCH:'#f59e0b', 'HIGH RISK':'#f97316', CRITICAL:'#ef4444' };
+    var rc = riskColor[sb.risk_level] || '#94a3b8';
+    var occ_pct = Math.round((sb.occupancy_pct || 0) * 100);
+    var free = s.total_capacity - s.current_occupancy;
+
+    // Show result card
+    var resultEl = document.getElementById('smartResult');
+    resultEl.style.display = 'block';
+    resultEl.innerHTML =
+      '<div class="sr-header">'
+      + '<div class="sr-icon">' + (d.already_assigned ? '✅' : '🧠') + '</div>'
+      + '<div>'
+      + '<div class="sr-title">' + (d.already_assigned ? 'Already Assigned' : 'Optimal Shelter Found') + '</div>'
+      + '<div class="sr-sub">' + s.name + (s.address ? ' · ' + s.address : '') + '</div>'
+      + '</div></div>'
+      + '<div class="sr-scores">'
+      + '<div class="score-pill">📍 Distance <span class="sp-val">' + (sb.distance_km || '—') + ' km</span></div>'
+      + '<div class="score-pill">🛏️ Beds Free <span class="sp-val">' + free + ' / ' + s.total_capacity + '</span></div>'
+      + '<div class="score-pill">⚠️ Risk Level <span class="sp-val" style="color:' + rc + '">' + (sb.risk_level || '—') + '</span></div>'
+      + '<div class="score-pill">📊 Cost Score <span class="sp-val">' + (sb.cost_score || '—') + '</span></div>'
+      + '</div>'
+      + '<div style="font-size:0.75rem;color:var(--muted);margin-bottom:10px">'
+      + 'Score = (distance × 0.5) + (occupancy × 0.3) + (risk × 0.2) — lower is safer'
+      + '</div>'
+      + '<button class="sr-route-btn" onclick="selectShelter(' + s.id + ')">🗺️ Show Route on Map</button>';
+
+    // Update button state
+    btn.textContent = '✅ Assigned';
+    btn.classList.add('done');
+
+    // Show assignment banner
+    document.getElementById('bannerTitle').textContent = 'Smart-assigned to: ' + s.name;
+    document.getElementById('assignBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    renderCards();
+    selectShelter(s.id);
+    showToast('Smart-assigned to ' + s.name + ' (' + (sb.distance_km || '?') + ' km)', 'success');
+  })
+  .catch(function(e) {
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = '⚡ Auto-Assign Me';
+    showToast(e.message || 'Smart assignment failed. Please try again.', 'error');
+  });
+}
+
+function doAssign(event, shelterId, shelterName) {
+  event.stopPropagation();
+
+  if (assignedId) {
+    showToast('You are already assigned to a shelter.', 'error');
+    return;
+  }
+
+  // Step 1: create / update victim record via recovery-sos
+  fetch('/api/user/recovery-sos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ priority: 'NORMAL', latitude: userLat, longitude: userLng })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.id) throw new Error(d.error || 'Could not create victim record');
+    // Step 2: assign to shelter
+    return fetch('/api/user/assign-shelter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shelter_id: shelterId })
+    });
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.success) throw new Error(d.error || 'Assignment failed');
+
+    assignedId = shelterId;
+
+    // Show success banner
+    document.getElementById('bannerTitle').textContent = 'Assigned to: ' + shelterName;
+    document.getElementById('assignBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Re-render cards + show route to assigned shelter
+    renderCards();
+    selectShelter(shelterId);
+    showToast('Assigned to ' + shelterName, 'success');
+  })
+  .catch(function(e) {
+    console.error(e);
+    showToast('Assignment failed. Please try again.', 'error');
+  });
+}
+
+/* ─── MAP PINS FOR ALL SHELTERS ────────────────────────────── */
+function paintMapPins() {
+  allPins.forEach(function(m) { m.remove(); });
+  allPins = [];
+  allShelters.forEach(function(s) {
+    if (!s.latitude || !s.longitude) return;
+    var free = s.total_capacity - s.current_occupancy;
+    var col  = s.status === 'critical' ? '#ef4444'
+             : s.status === 'closed'   ? '#64748b' : '#22c55e';
+    var m = L.circleMarker([s.latitude, s.longitude], {
+      radius: 6, color: '#fff', weight: 1.5, fillColor: col, fillOpacity: 0.9
+    })
+    .addTo(map)
+    .bindPopup('<b>' + s.name + '</b><br>' + free + ' beds free<br>Status: ' + s.status)
+    .on('click', (function(sid) { return function() { selectShelter(sid); }; })(s.id));
+    allPins.push(m);
+  });
+}
+
+/* ─── TOAST ────────────────────────────────────────────────── */
+function showToast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast ' + (type === 'success' ? 'success' : 'error');
+  el.innerHTML = '<span style="font-weight:700">' + (type === 'success' ? '&#10003;' : '&#10007;') + '</span><span>' + msg + '</span>';
+  document.getElementById('toastArea').appendChild(el);
+  setTimeout(function() {
+    el.style.opacity = '0'; el.style.transition = 'opacity .3s';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 3500);
+}
+
+document.getElementById('searchInput').addEventListener('input', renderCards);
+
+/* ─── TAB SWITCHING ────────────────────────────────────────── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'shelters') { setTimeout(function(){ if(map) map.invalidateSize(); }, 100); }
+  if (id === 'aid')    loadMyClaims(false);
+  if (id === 'damage') loadMyReports(false);
+  if (id === 'status') { loadMyStatus(); loadMyClaims(true); loadMyReports(true); }
+}
+
+/* ─── AID CLAIM SUBMIT ─────────────────────────────────────── */
+function submitAidClaim(e) {
+  e.preventDefault();
+  var form = e.target;
+  var data = {
+    category:    form.category.value,
+    amount:      parseFloat(form.amount.value),
+    description: form.description.value
+  };
+  fetch('/api/user/recovery-aid-claims', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.success) {
+      showToast('Aid claim submitted successfully', 'success');
+      form.reset();
+      loadMyClaims(false);
+    } else {
+      showToast(d.error || 'Submission failed', 'error');
+    }
+  })
+  .catch(function(){ showToast('Network error. Please try again.', 'error'); });
+}
+
+function loadMyClaims(intoStatus) {
+  var targetId = intoStatus ? 'statusClaimsList' : 'claimsList';
+  fetch('/api/user/my-recovery-claims')
+    .then(function(r){ return r.json(); })
+    .then(function(claims){
+      if (!Array.isArray(claims) || !claims.length) {
+        document.getElementById(targetId).innerHTML = '<div class="history-empty">No aid claims submitted yet</div>';
+        return;
+      }
+      var html = '<div class="history-list">' + claims.map(function(c){
+        var stCls = 'badge-' + (c.status || 'pending');
+        return '<div class="history-item">'
+          + '<div class="hi-head">'
+          +   '<div class="hi-title">' + (c.category || '—') + '</div>'
+          +   '<span class="badge ' + stCls + '">' + (c.status || 'pending') + '</span>'
+          + '</div>'
+          + '<div class="hi-amount">&#8377;' + Number(c.amount || 0).toLocaleString('en-IN') + '</div>'
+          + (c.description ? '<div class="hi-sub">' + c.description + '</div>' : '')
+          + '<div class="hi-sub" style="margin-top:4px;font-size:0.69rem;color:var(--muted)">'
+          +   new Date(c.created_at).toLocaleString('en-IN')
+          + '</div>'
+          + '</div>';
+      }).join('') + '</div>';
+      document.getElementById(targetId).innerHTML = html;
+    })
+    .catch(function(){
+      document.getElementById(targetId).innerHTML = '<div class="history-empty" style="color:var(--red)">Could not load claims</div>';
+    });
+}
+
+/* ─── DAMAGE REPORT SUBMIT ─────────────────────────────────── */
+function submitDamageReport(e) {
+  e.preventDefault();
+  var form = e.target;
+  var fd   = new FormData(form);
+  fd.set('latitude',  userLat);
+  fd.set('longitude', userLng);
+  fetch('/api/recovery/damage-reports', { method: 'POST', body: fd })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        showToast('Damage report submitted', 'success');
+        form.reset();
+        document.getElementById('photoLabel').textContent = 'Tap to attach a photo';
+        document.querySelectorAll('.sev-opt').forEach(function(o){ o.classList.remove('sel'); });
+        document.querySelector('.sev-opt[data-v="medium"]').classList.add('sel');
+        document.getElementById('sevVal').value = 'medium';
+        loadMyReports(false);
+      } else {
+        showToast(d.error || 'Submission failed', 'error');
+      }
+    })
+    .catch(function(){ showToast('Network error. Please try again.', 'error'); });
+}
+
+function loadMyReports(intoStatus) {
+  var targetId = intoStatus ? 'statusReportsList' : 'reportsList';
+  fetch('/api/user/my-recovery-reports')
+    .then(function(r){ return r.json(); })
+    .then(function(reports){
+      if (!Array.isArray(reports) || !reports.length) {
+        document.getElementById(targetId).innerHTML = '<div class="history-empty">No damage reports submitted yet</div>';
+        return;
+      }
+      var sevCol = { low:'#22c55e', medium:'#f59e0b', high:'#f97316', critical:'#ef4444' };
+      var html = '<div class="history-list">' + reports.map(function(r){
+        var stCls = 'badge-' + (r.status || 'pending');
+        var sc    = sevCol[r.severity] || '#94a3b8';
+        return '<div class="history-item">'
+          + '<div class="hi-head">'
+          +   '<div class="hi-title">&#128205; ' + (r.location || 'Unknown location') + '</div>'
+          +   '<span class="badge ' + stCls + '">' + (r.status || 'pending') + '</span>'
+          + '</div>'
+          + '<div class="hi-sub">' + (r.damage_type || '') + (r.severity ? ' &middot; <span style="color:' + sc + '">' + r.severity.toUpperCase() + '</span>' : '') + '</div>'
+          + (r.description ? '<div class="hi-sub" style="margin-top:3px">' + r.description + '</div>' : '')
+          + '<div class="hi-sub" style="margin-top:4px;font-size:0.69rem;color:var(--muted)">'
+          +   new Date(r.created_at).toLocaleString('en-IN')
+          + '</div>'
+          + '</div>';
+      }).join('') + '</div>';
+      document.getElementById(targetId).innerHTML = html;
+    })
+    .catch(function(){
+      document.getElementById(targetId).innerHTML = '<div class="history-empty" style="color:var(--red)">Could not load reports</div>';
+    });
+}
+
+/* ─── MY STATUS ────────────────────────────────────────────── */
+function loadMyStatus() {
+  fetch('/api/user/my-recovery-status')
+    .then(function(r){ return r.json(); })
+    .then(function(v){
+      if (!v) {
+        document.getElementById('statusRows').innerHTML =
+          '<div class="sp-row"><span class="sp-key">No recovery record found. Assign yourself to a shelter first.</span></div>';
+        return;
+      }
+      var col = { missing:'#f59e0b', sheltered:'#3b82f6', rescued:'#22c55e' }[v.status] || '#94a3b8';
+      document.getElementById('statusRows').innerHTML =
+        '<div class="sp-row"><span class="sp-key">Recovery Status</span><span class="sp-val" style="color:' + col + '">' + (v.status || '—').toUpperCase() + '</span></div>'
+        + '<div class="sp-row"><span class="sp-key">Shelter Assigned</span><span class="sp-val">' + (v.shelter_name || '— Not assigned') + '</span></div>'
+        + '<div class="sp-row"><span class="sp-key">Priority Level</span><span class="sp-val">' + (v.priority || '—') + '</span></div>'
+        + (v.medical_condition ? '<div class="sp-row"><span class="sp-key">Medical Condition</span><span class="sp-val">' + v.medical_condition + '</span></div>' : '')
+        + '<div class="sp-row"><span class="sp-key">Registered</span><span class="sp-val">' + new Date(v.created_at).toLocaleString('en-IN') + '</span></div>';
+    })
+    .catch(function(){
+      document.getElementById('statusRows').innerHTML =
+        '<div class="sp-row"><span class="sp-key" style="color:var(--red)">Could not load status</span></div>';
+    });
+}
+
+/* ─── SEVERITY PICKER ──────────────────────────────────────── */
+document.querySelectorAll('.sev-opt').forEach(function(opt){
+  opt.addEventListener('click', function(){
+    document.querySelectorAll('.sev-opt').forEach(function(o){ o.classList.remove('sel'); });
+    opt.classList.add('sel');
+    document.getElementById('sevVal').value = opt.getAttribute('data-v');
+  });
+});
+</script>
+</body>
+</html>

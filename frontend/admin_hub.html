@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoSecure — Admin Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060c18;--surface:#0d1526;--border:#1a2744;
+  --blue:#3b82f6;--text:#e2e8f0;--muted:#64748b;
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',sans-serif;min-height:100vh;
+  display:flex;flex-direction:column;
+}
+/* Grid background */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+/* Orbs */
+.orb{position:fixed;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0}
+.orb-1{width:500px;height:500px;background:rgba(34,197,94,0.07);top:-200px;right:-150px}
+.orb-2{width:400px;height:400px;background:rgba(59,130,246,0.07);bottom:-150px;left:-100px}
+
+/* NAV */
+.nav{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 32px;
+  border-bottom:1px solid var(--border);
+  background:rgba(6,12,24,0.9);backdrop-filter:blur(12px);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brand-icon{
+  width:38px;height:38px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 20px rgba(59,130,246,0.4);
+}
+.brand-name{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800}
+.brand-name span{color:#3b82f6}
+.nav-right{display:flex;align-items:center;gap:10px}
+.admin-badge{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:20px;font-size:0.75rem;font-weight:600;
+  background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.25);color:#4ade80;
+}
+.nav-logout{
+  padding:7px 16px;border-radius:8px;font-size:0.82rem;font-weight:600;
+  background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  color:var(--muted);text-decoration:none;transition:all 0.2s;
+}
+.nav-logout:hover{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:#f87171}
+
+/* MAIN */
+.main{
+  position:relative;z-index:5;
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:40px 24px;
+}
+.page-header{text-align:center;margin-bottom:48px}
+.page-tag{
+  display:inline-block;
+  font-size:0.68rem;text-transform:uppercase;letter-spacing:3px;font-weight:700;
+  color:#4ade80;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);
+  border-radius:20px;padding:4px 14px;margin-bottom:16px;
+}
+.page-title{
+  font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);
+  font-weight:800;margin-bottom:10px;
+}
+.page-title span{color:#3b82f6}
+.page-sub{color:var(--muted);font-size:0.92rem;max-width:440px;margin:0 auto;line-height:1.6}
+
+/* CARDS GRID */
+.cards{
+  display:flex;gap:24px;flex-wrap:wrap;justify-content:center;
+  max-width:700px;width:100%;
+}
+.card{
+  position:relative;overflow:hidden;
+  background:rgba(13,21,38,0.9);
+  border:1px solid var(--border);border-radius:20px;
+  padding:32px 28px;width:300px;
+  text-decoration:none;color:var(--text);
+  transition:all 0.28s ease;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:20px;
+  opacity:0;transition:opacity 0.28s;
+}
+/* SOS card — red */
+.card-sos::before{background:linear-gradient(135deg,rgba(239,68,68,0.1),transparent)}
+.card-sos:hover{
+  transform:translateY(-6px);
+  border-color:rgba(239,68,68,0.45);
+  box-shadow:0 24px 60px rgba(239,68,68,0.15),0 8px 32px rgba(0,0,0,0.5);
+}
+.card-sos:hover::before{opacity:1}
+/* Shelters card — teal */
+.card-shelter::before{background:linear-gradient(135deg,rgba(20,184,166,0.1),transparent)}
+.card-shelter:hover{
+  transform:translateY(-6px);
+  border-color:rgba(20,184,166,0.45);
+  box-shadow:0 24px 60px rgba(20,184,166,0.12),0 8px 32px rgba(0,0,0,0.5);
+}
+.card-shelter:hover::before{opacity:1}
+
+.card-arrow{
+  position:absolute;top:24px;right:24px;width:30px;height:30px;
+  background:rgba(255,255,255,0.06);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all 0.25s;
+}
+.card-sos:hover .card-arrow{background:#ef4444;transform:translateX(3px)}
+.card-shelter:hover .card-arrow{background:#14b8a6;transform:translateX(3px)}
+
+.card-icon{
+  width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;margin-bottom:20px;
+}
+.ci-red{background:rgba(239,68,68,0.18);border:1px solid rgba(239,68,68,0.3)}
+.ci-teal{background:rgba(20,184,166,0.18);border:1px solid rgba(20,184,166,0.3)}
+
+.card-label{
+  font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;
+  color:var(--muted);font-weight:600;margin-bottom:6px;
+}
+.card-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;margin-bottom:10px}
+.card-desc{color:var(--muted);font-size:0.82rem;line-height:1.6}
+
+/* Live badge */
+.live-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:18px;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;
+  background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#fca5a5;
+}
+.live-chip span{
+  width:5px;height:5px;border-radius:50%;background:#ef4444;
+  animation:pulse-dot 1.5s infinite;
+}
+.shelter-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:18px;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:600;
+  background:rgba(20,184,166,0.12);border:1px solid rgba(20,184,166,0.25);color:#5eead4;
+}
+.shelter-chip span{
+  width:5px;height:5px;border-radius:50%;background:#14b8a6;
+  animation:pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.6)}}
+
+/* Footer */
+.footer{
+  position:relative;z-index:5;
+  text-align:center;padding:18px;font-size:0.75rem;color:var(--muted);
+  border-top:1px solid var(--border);
+}
+.footer b{color:var(--blue)}
+
+@media(max-width:660px){
+  .cards{flex-direction:column;align-items:center}
+  .card{width:100%;max-width:340px}
+}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="brand-icon">🛡️</div>
+    <div class="brand-name">Geo<span>Secure</span></div>
+  </a>
+  <div class="nav-right">
+    <div class="admin-badge">
+      <span>🔐</span> Admin Session
+    </div>
+    <a href="/user/logout" class="nav-logout">Sign Out</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="page-header">
+    <div class="page-tag">Admin Control Hub</div>
+    <h1 class="page-title">Welcome, <span>Admin</span></h1>
+    <p class="page-sub">Select a module to manage. All real-time data is synced across both dashboards.</p>
+  </div>
+
+  <div class="cards">
+
+    <!-- Card 1: SOS Rescue Control Room -->
+    <a href="/admin/rescue" class="card card-sos">
+      <div class="card-arrow">→</div>
+      <div class="card-icon ci-red">🚨</div>
+      <div class="card-label">During-Disaster · Phase 02</div>
+      <div class="card-title">SOS Control Room</div>
+      <div class="card-desc">
+        Monitor and manage all incoming SOS requests. Dispatch ambulances, manage road blocks,
+        and route rescues in real-time.
+      </div>
+      <div class="live-chip"><span></span> Live Rescue Feed</div>
+    </a>
+
+    <!-- Card 2: Open Shelters Management -->
+    <a href="/admin/recovery" class="card card-shelter">
+      <div class="card-arrow">→</div>
+      <div class="card-icon ci-teal">🏠</div>
+      <div class="card-label">Post-Disaster · Phase 03</div>
+      <div class="card-title">Open Shelters</div>
+      <div class="card-desc">
+        Manage shelter occupancy, allocate victims, oversee damage reports and process
+        aid disbursement claims across Tamil Nadu.
+      </div>
+      <div class="shelter-chip"><span></span> Shelter Management</div>
+    </a>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  GeoSecure Chennai · Admin Panel · <b>Secured Session</b>
+</div>
+
+</body>
+</html>

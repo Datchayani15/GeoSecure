@@ -1,0 +1,14 @@
+flask
+flask-cors
+pandas
+numpy
+scikit-learn
+joblib
+requests
+requests-cache
+retry-requests
+openmeteo-requests
+tensorflow-cpu
+fpdf2
+reportlab
+gunicorn
