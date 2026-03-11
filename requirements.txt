@@ -8,7 +8,7 @@ requests
 requests-cache
 retry-requests
 openmeteo-requests
-tensorflow-cpu
+tensorflow==2.15.0
 fpdf2
 reportlab
 gunicorn
