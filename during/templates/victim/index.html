@@ -6,7 +6,19 @@
 <title>GeoSecure — Emergency SOS</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/victim.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/victim.css') }}?v=6.0">
+<style>
+  /* Popup Compaction */
+  .leaflet-popup-content-wrapper {
+    background: rgba(15, 23, 42, 0.9) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  .leaflet-popup-content { margin: 6px 8px !important; }
+  .leaflet-popup-tip { background: rgba(15, 23, 42, 0.9) !important; }
+</style>
 </head>
 <body>
 
@@ -134,6 +146,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="{{ url_for('static', filename='js/victim.js') }}?v=3.0"></script>
+<script src="{{ url_for('static', filename='js/victim.js') }}?v=6.0"></script>
 </body>
 </html>

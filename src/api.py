@@ -367,7 +367,19 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     a = math.sin(dlat/2)**2 + math.cos(lat1r)*math.cos(lat2r)*math.sin(dlon/2)**2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
+# ───── HOSPITAL SEARCH WITH CACHING ──────────────────────────────────────────
+hospital_cache = {}
+
 def find_nearest_hospitals_overpass(lat, lng, radius_meters=10000, limit=5):
+    # Cache key: lat/lng rounded to 2 decimals (~1.1km precision)
+    cache_key = (round(lat, 2), round(lng, 2), radius_meters, limit)
+    now = datetime.now()
+    
+    if cache_key in hospital_cache:
+        entry, timestamp = hospital_cache[cache_key]
+        if (now - timestamp).total_seconds() < 600: # 10 min cache
+            return entry
+
     query = f"""
     [out:json][timeout:25];
     (node["amenity"="hospital"](around:{radius_meters},{lat},{lng});
@@ -375,9 +387,15 @@ def find_nearest_hospitals_overpass(lat, lng, radius_meters=10000, limit=5):
      relation["amenity"="hospital"](around:{radius_meters},{lat},{lng}););
     out center;
     """
+    headers = {
+        'User-Agent': 'GeoSecureBot/1.0 (Chennai Disaster Response Platform)',
+        'Origin': 'http://localhost:5000',
+        'Content-Type': 'text/plain'
+    }
+    
     try:
         r = requests.post("https://overpass-api.de/api/interpreter",
-                          data=query, headers={'Content-Type': 'text/plain'}, timeout=25)
+                          data=query, headers=headers, timeout=25)
         hospitals = []
         for el in r.json().get('elements', []):
             h_lat = el.get('lat') or el.get('center', {}).get('lat')
@@ -390,10 +408,17 @@ def find_nearest_hospitals_overpass(lat, lng, radius_meters=10000, limit=5):
                 'latitude': h_lat, 'longitude': h_lon,
                 'distance': round(calculate_distance(lat, lng, h_lat, h_lon), 2)
             })
+        
         hospitals.sort(key=lambda x: x['distance'])
-        return hospitals[:limit] or [{'id':0,'name':'Emergency Services','latitude':lat+0.005,'longitude':lng+0.005,'distance':0.5}]
+        result = hospitals[:limit]
+        if result:
+            hospital_cache[cache_key] = (result, now)
+        return result or [{'id':0,'name':'Emergency Services','latitude':lat+0.005,'longitude':lng+0.005,'distance':0.5}]
+        
     except Exception as e:
-        return [{'id':0,'name':'Emergency Services (Offline)','latitude':lat+0.01,'longitude':lng+0.01,'distance':1.0}]
+        print(f"⚠️ Overpass API error: {e}")
+        # Return a generic Emergency marker if API fails and no cache exists
+        return [{'id':0,'name':'Emergency Services (Searching...)','latitude':lat+0.01,'longitude':lng+0.01,'distance':1.0}]
 
 def find_nearest_hospital(lat, lng):
     h = find_nearest_hospitals_overpass(lat, lng, limit=1)[0]
@@ -887,6 +912,8 @@ def ambulance_position(sos_id):
         amb_lat = coords[idx][0]
         amb_lng = coords[idx][1]
         eta_sec = max(0, int(total_dur - elapsed))
+        
+        print(f"🚑 API POLL: SOS {sos_id} | Progress: {progress:.2%} | ETA: {eta_sec}s | Elapsed: {elapsed:.1f}s / {total_dur}s")
 
         return jsonify({
             "ready":        True,
@@ -1028,7 +1055,7 @@ def add_roadblock():
 
 @app.route('/api/admin/roadblocks')
 def get_all_roadblocks():
-    if not session.get('admin'): return jsonify({"error": "Unauthorized"}), 401
+    if not session.get('admin') and not session.get('user_id') and not session.get('recovery_user_id'): return jsonify({"error": "Unauthorized"}), 401
     return jsonify({"road_blocks": road_blocks})
 
 @app.route('/api/simulate-roadblock')

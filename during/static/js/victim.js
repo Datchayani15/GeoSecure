@@ -5,11 +5,17 @@ let userLocation = null, locationWatchId = null;
 let currentSOSId = null, statusCheckInterval = null;
 let lastKnownState = {status:'', hospital:'', reason:''};
 let locationSendTimer = null;
+let syncPollInterval = null;
+let etaTimer = null; // Fix for reference error in updateStatusUI
 
 // ── Map state ─────────────────────────────────────────────────
 let victimMap = null, mapInitialized = false;
 let victimMarker = null, hospitalMarker = null, ambulanceMarker = null;
 let routePolyline = null;
+let routeDrawn = false;
+let routePolylineHash = 0;
+let activeBlockKeys = new Set();
+let blockLayers = [];
 
 // ── Tag pills toggle ──────────────────────────────────────────
 document.querySelectorAll('.tag-pill').forEach(pill => {
@@ -135,16 +141,16 @@ function showHospitalOnMap(hospLat, hospLng, hospName) {
   }).addTo(victimMap).bindPopup(`<b>🏥 ${hospName}</b><br>Your ambulance is coming from here`).openPopup();
 }
 
-// ── Server-synced ambulance tracking ─────────────────────────
 // No independent OSRM call — position comes from server so both maps stay in sync
-
-let syncPollInterval = null;
-let routeDrawn = false;
 
 function startSyncPolling(sosId) {
   if (syncPollInterval) clearInterval(syncPollInterval);
-  syncPollInterval = setInterval(() => pollAmbulancePosition(sosId), 2000);
+  syncPollInterval = setInterval(() => {
+    pollAmbulancePosition(sosId);
+    loadRoadBlocks();
+  }, 2000);
   pollAmbulancePosition(sosId); // immediate first call
+  loadRoadBlocks();
 }
 
 async function pollAmbulancePosition(sosId) {
@@ -161,8 +167,10 @@ async function pollAmbulancePosition(sosId) {
     }
 
     // First time we get route coords — draw the route line
-    if (!routeDrawn && d.route_coords && d.route_coords.length) {
+    const currentRouteHash = d.route_coords ? JSON.stringify(d.route_coords) : '';
+    if ((!routeDrawn || routePolylineHash !== currentRouteHash) && d.route_coords && d.route_coords.length) {
       routeDrawn = true;
+      routePolylineHash = currentRouteHash;
       if (routePolyline) victimMap.removeLayer(routePolyline);
       routePolyline = L.polyline(d.route_coords, {color:'#22c55e', weight:5, opacity:0.85})
         .addTo(victimMap);
@@ -244,6 +252,44 @@ function showVictimMap() {
   setTimeout(() => { if (victimMap) victimMap.invalidateSize(); }, 100);
 }
 
+async function loadRoadBlocks() {
+  try {
+    const data = await fetch('/api/admin/roadblocks').then(r => r.json());
+    if (data.road_blocks) {
+      data.road_blocks.forEach(rb => {
+        const key = `${rb.lat.toFixed(6)},${rb.lng.toFixed(6)}`;
+        if (!activeBlockKeys.has(key)) {
+          addBlockToMap(rb.lat, rb.lng, rb.reason, rb.image);
+          activeBlockKeys.add(key);
+        }
+      });
+    }
+  } catch(e) { console.error('Failed to load roadblocks:', e); }
+}
+
+function addBlockToMap(lat, lng, reason, image) {
+  if (!mapInitialized || !victimMap) return;
+  const content = `
+    <div style="font-family:'DM Sans',sans-serif;width:150px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="font-size:16px">🚧</span>
+        <b style="color:#ef4444;font-size:0.8rem;line-height:1.2">${reason || 'Obstacle Detected'}</b>
+      </div>
+      ${image ? `<img src="/static/images/${image}" style="width:100%;border-radius:6px;border:1px solid #334155;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:block" alt="${reason}">` : 
+                '<div style="background:#1e293b;padding:8px;border-radius:6px;color:#94a3b8;font-size:0.7rem;text-align:center">No visual data.</div>'}
+    </div>
+  `;
+
+  const m = L.marker([lat, lng], {icon: L.divIcon({
+    html: '<div style="font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));cursor:pointer">🚧</div>',
+    className:'', iconSize:[32,32], iconAnchor:[16,16]
+  })}).addTo(victimMap).bindPopup(content, {maxWidth: 220});
+  
+  const c = L.circle([lat, lng], {radius:250, color:'#ef4444', weight:2, fillColor:'#ef4444', fillOpacity:0.2}).addTo(victimMap);
+  
+  blockLayers.push(m, c);
+}
+
 // ── Status polling ────────────────────────────────────────────
 function startStatusTracking(sosId) {
   currentSOSId = sosId;
@@ -262,7 +308,7 @@ function stopStatusTracking() {
 }
 
 function updateStatusUI(sos) {
-  const cur = {status: sos.status, hospital: sos.hospital_name, reason: sos.reassigned_reason || ''};
+  const cur = {status: sos.status, hospital: sos.hospital_name, reason: sos.reassigned_reason || '', image: sos.block_image || ''};
   if (JSON.stringify(cur) === JSON.stringify(lastKnownState)) return;
 
   const hospitalChanged = lastKnownState.hospital && lastKnownState.hospital !== sos.hospital_name;
@@ -390,6 +436,7 @@ async function cancelSOS() {
   stopStatusTracking();
   stopAmbulanceAnim(); // also clears syncPollInterval
   routeDrawn = false;
+  routePolylineHash = 0;
   currentSOSId = null;
   // Reset UI
   document.getElementById('waitingState').style.display = 'block';

@@ -16,14 +16,14 @@
   --muted: #94a3b8;
   --font-main: "DM Sans", sans-serif;
   --font-head: "Syne", sans-serif;
-  --sidebar-w: 420px;
-  --nav-h: 72px;
-  --stats-h: 120px;
-  --bottom-h: 220px;
+  --sidebar-w: 300px;
+  --nav-h: 50px;
+  --stats-h: 68px;
+  --bottom-h: 185px;
 }
 
 html {
-  font-size: 18px
+  font-size: 13px
 }
 
 body {
@@ -52,7 +52,7 @@ body::before {
 /* NAV */
 .nav {
   height: var(--nav-h);
-  padding: 0 40px;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -134,18 +134,18 @@ body::before {
 }
 
 .nav-btn {
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 0.92rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: none;
   font-family: inherit;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 
 .btn-primary {
@@ -238,8 +238,8 @@ body::before {
 .stats-bar {
   height: var(--stats-h);
   display: flex;
-  gap: 16px;
-  padding: 0 24px;
+  gap: 10px;
+  padding: 0 16px;
   background: var(--bg-card);
   border-top: 1px solid var(--border);
   align-items: center;
@@ -251,11 +251,11 @@ body::before {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   transition: 0.3s
 }
 
@@ -268,21 +268,21 @@ body::before {
 }
 
 .stat-icon {
-  font-size: 1.8rem;
+  font-size: 1.2rem;
   flex-shrink: 0;
   opacity: 0.8
 }
 
 .stat-num {
   font-family: 'Syne', sans-serif;
-  font-size: 1.8rem;
+  font-size: 1.2rem;
   font-weight: 800;
   line-height: 1;
-  margin-bottom: 2px
+  margin-bottom: 1px
 }
 
 .stat-lbl {
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 1.5px;
@@ -315,8 +315,8 @@ body::before {
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr;
   height: calc(100vh - var(--nav-h) - var(--stats-h));
-  gap: 20px;
-  padding: 16px
+  gap: 12px;
+  padding: 10px
 }
 
 /* SIDEBAR */
@@ -371,7 +371,9 @@ body::before {
 
 #sosList {
   flex: 1;
-  padding: 8px
+  padding: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .empty-state {
@@ -383,11 +385,11 @@ body::before {
 
 /* SOS items */
 .sos-item {
-  padding: 14px 16px;
-  border-radius: 12px;
+  padding: 8px 11px;
+  border-radius: 9px;
   cursor: pointer;
   border: 1px solid transparent;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   transition: all 0.15s;
   background: rgba(255, 255, 255, 0.02);
 }
@@ -412,13 +414,13 @@ body::before {
 
 .sos-item-name {
   font-weight: 600;
-  font-size: 0.92rem
+  font-size: 0.82rem
 }
 
 .sos-item-meta {
-  font-size: 0.82rem;
+  font-size: 0.73rem;
   color: var(--muted);
-  margin-bottom: 8px
+  margin-bottom: 5px
 }
 
 .sos-item-bottom {
@@ -570,7 +572,7 @@ body::before {
 }
 
 .detail-panel {
-  padding: 16px 20px;
+  padding: 10px 14px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
 }
@@ -671,9 +673,9 @@ body::before {
 }
 
 .dact-btn {
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 0.82rem;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   border: none;
@@ -761,4 +763,30 @@ body::before {
   border-color: var(--blue);
   color: var(--blue);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15)
+}
+
+/* ─── LEAFLET POPUP COMPACTION ─── */
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(8px);
+}
+.leaflet-popup-content {
+  margin: 6px 8px !important;
+  padding: 0 !important;
+  line-height: inherit !important;
+}
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  padding: 8px 8px 0 0 !important;
+}
+.leaflet-popup-close-button:hover {
+  color: #fff !important;
 }

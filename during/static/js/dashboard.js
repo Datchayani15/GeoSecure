@@ -124,8 +124,8 @@ async function loadSOS() {
     if (selectedSOS) {
       const upd = newList.find(s => s.id === selectedSOS.id);
       if (upd) {
-        const moved = Math.abs(upd.latitude  - selectedSOS.latitude)  > 0.0001 ||
-                      Math.abs(upd.longitude - selectedSOS.longitude) > 0.0001;
+        const moved = Math.abs(upd.latitude  - selectedSOS.latitude)  > 0.002 ||
+                      Math.abs(upd.longitude - selectedSOS.longitude) > 0.002;
         if (moved && selectedSOS.status === 'Assigned') {
           selectedSOS = upd;
           toast(`SOS #${upd.id} victim location updated`, 'info', 2500);
@@ -361,14 +361,14 @@ function addBlockToMap(lat, lng, reason, image, autoOpen=true) {
   
   lastBlockImage = image || null;
   const content = `
-    <div style="font-family:'DM Sans',sans-serif;width:200px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:20px">🚧</span>
-        <b style="color:#ef4444;font-size:0.95rem">${reason || 'Obstacle Detected'}</b>
+    <div style="font-family:'DM Sans',sans-serif;width:150px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="font-size:16px">🚧</span>
+        <b style="color:#ef4444;font-size:0.8rem;line-height:1.2">${reason || 'Obstacle Detected'}</b>
       </div>
-      ${image ? `<img src="/static/images/${image}" style="width:100%;border-radius:10px;border:2px solid #334155;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:block" alt="${reason}">` : 
-                '<div style="background:#1e293b;padding:12px;border-radius:8px;color:#94a3b8;font-size:0.75rem;text-align:center">Road structurally compromised. No visual data available.</div>'}
-      <div style="margin-top:8px;font-size:0.7rem;color:#64748b;text-align:right">Ref: BLK-${Math.floor(Math.random()*9000)+1000}</div>
+      ${image ? `<img src="/static/images/${image}" style="width:100%;border-radius:6px;border:1px solid #334155;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:block" alt="${reason}">` : 
+                '<div style="background:#1e293b;padding:8px;border-radius:6px;color:#94a3b8;font-size:0.7rem;text-align:center">No visual data.</div>'}
+      <div style="margin-top:6px;font-size:0.65rem;color:#64748b;text-align:right">Ref: BLK-${Math.floor(Math.random()*9000)+1000}</div>
     </div>
   `;
 
@@ -542,15 +542,27 @@ async function showRoute() {
 
       if (requestId !== currentRouteRequestId) return; // Discard stale request
 
-      // Hospital marker (now managed primarily by showNearestHospitals, but add here to be safe if that didn't run)
-      if(hospitalMarkers.length === 0) {
-        routeLayers.push(L.marker([bestHosp.latitude, bestHosp.longitude], {icon: L.divIcon({
-          html: `<div style="background:white;border-radius:50%;width:32px;height:32px;
-            display:flex;align-items:center;justify-content:center;font-size:16px;
-            border:2px solid #22c55e;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏥</div>`,
-          className:'', iconSize:[32,32]
-        })}).addTo(map).bindPopup(`<b>${bestHosp.name}</b><br>${dist} km · ETA ~${eta} min<br><i>${reason}</i>`));
-      }
+      // Hospital markers (Show top 5 candidates)
+      hospitals.slice(0, 5).forEach((h, idx) => {
+        const isBest = bestHosp && h.name === bestHosp.name;
+        const iconColor = isBest ? '#22c55e' : '#64748b';
+        const iconSize = isBest ? [36, 36] : [24, 24];
+        const zIndex = isBest ? 1000 : 500;
+        
+        const m = L.marker([h.latitude, h.longitude], {
+          zIndexOffset: zIndex,
+          icon: L.divIcon({
+            html: `<div style="background:white;border-radius:50%;width:${iconSize[0]}px;height:${iconSize[1]}px;
+              display:flex;align-items:center;justify-content:center;font-size:${isBest?18:12}px;
+              border:2.5px solid ${iconColor};box-shadow:0 3px 10px rgba(0,0,0,0.4);
+              ${isBest ? '' : 'opacity:0.8;'} transition: all 0.3s">🏥</div>`,
+            className:'', iconSize:iconSize, iconAnchor:[iconSize[0]/2, iconSize[1]/2]
+          })
+        }).addTo(map).bindPopup(`<b>🏥 ${h.name}</b><br>${h.distance} km away${isBest ? ' · <b style="color:#22c55e">SELECTED</b>' : ''}`);
+        
+        routeLayers.push(m);
+        if (isBest) hospitalMarkers.push(m); // Keep reference for animation eta updates
+      });
 
       // Route line
       routeLayers.push(L.polyline(coords, {color:'#22c55e', weight:7, opacity:0.9})
@@ -573,6 +585,17 @@ async function showRoute() {
           .addTo(map).bindPopup('<b>⚠️ DETOUR ROUTE</b><br>All direct paths blocked'));
         toast('All direct routes blocked — using detour', 'warning', 6000);
         animCoords = coords; animDur = 20000; realDuration = 1200; // ~20 min estimate
+        
+        // Save detour details to database so victim sees the roadblock!
+        const reason = `⚠️ Direct route blocked — using detour.`;
+        await fetch(`/api/admin/sos/${selectedSOS.id}/hospital`, {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({hospital_name: hospitals[0].name, hospital_lat: hospitals[0].latitude,
+                                hospital_lon: hospitals[0].longitude, reassigned_reason: reason,
+                                block_image: lastBlockImage})
+        });
+        Object.assign(selectedSOS, {hospital_name: hospitals[0].name, hospital_lat: hospitals[0].latitude,
+          hospital_lon: hospitals[0].longitude, reassigned_reason: reason, block_image: lastBlockImage});
       } else {
         toast('🛑 ALL ROUTES BLOCKED — Manual dispatch required!', 'error', 10000);
       }
@@ -714,7 +737,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSOS();
   loadNavRisk();
   loadRoadBlocks();
-  setInterval(loadSOS, 5000);
+  // loadSOS is managed by startDashboardRefresh() when an SOS is selected
+  // but we keep a slower 10s background refresh for the general list if nothing is selected
+  setInterval(() => { if(!selectedSOS) loadSOS(); }, 10000); 
   setInterval(loadNavRisk, 60000);
   setInterval(loadRoadBlocks, 10000); // sync roadblocks every 10s
 });
